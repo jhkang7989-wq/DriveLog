@@ -364,16 +364,34 @@
 
   async function getFreeAddress(lat, lng) {
     try {
-      const targetUrl = encodeURIComponent(`https://naveropenapi.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&output=json`);
+      // 💡 핵심 변경: orders=roadaddr,addr,legalcode 를 추가하여 도로명, 지번, 법정동을 한 번에 모두 요청!
+      const targetUrl = encodeURIComponent(`https://naveropenapi.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&orders=roadaddr,addr,legalcode&output=json`);
       const res = await fetch(`${PROXY_URL}?target=${targetUrl}`);
       const data = await res.json();
       
       if(data.results && data.results.length > 0) {
-        const region = data.results[0].region;
+        // 가장 상세한 주소 형태부터 찾아서 쓰기 (도로명 -> 지번 -> 법정동 순서)
+        const bestResult = data.results.find(r => r.name === 'roadaddr') || 
+                           data.results.find(r => r.name === 'addr') || 
+                           data.results[0];
+                           
+        const region = bestResult.region;
+        const land = bestResult.land; // 지번 및 번지수 정보
+        
         let addr = "";
         if(region.area1) addr += region.area1.name + " ";
         if(region.area2) addr += region.area2.name + " ";
-        if(region.area3) addr += region.area3.name;
+        if(region.area3) addr += region.area3.name + " ";
+        
+        // 상세 번지수(예: 1178)나 도로명 건물번호가 있으면 마저 붙여주기
+        if (land) {
+          if (bestResult.name === 'roadaddr' && land.name && land.number1) {
+              addr += land.name + " " + land.number1;
+          } else if (land.number1) {
+              addr += land.number1;
+              if (land.number2 && land.number2 !== "") addr += "-" + land.number2;
+          }
+        }
         return addr.trim();
       }
       return "(주소 정보 없음)";
