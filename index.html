@@ -112,7 +112,6 @@
   <!-- 글로벌 상단 헤더 -->
   <header class="global-header">
     <div class="brand">
-      <!-- 텍스트 없이 가로형 로고 이미지만 출력되도록 변경됨 -->
       <img src="header_logo.png" alt="DriveLog Logo" class="brand-logo" onerror="this.style.display='none'">
     </div>
     <div class="gps-indicator">
@@ -244,6 +243,22 @@
     
     toggleDarkMode(true);
     updateMainUI();
+
+    // 🚀 NFC 단축어 URL 쿼리 파라미터 확인 후 자동 실행 로직
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'toggle') {
+        console.log("NFC 태그로 앱이 실행되어 자동 토글을 시도합니다.");
+        
+        // GPS 수신 시간을 위해 약간의 지연(Delay)을 주고 실행합니다.
+        setTimeout(() => {
+             // URL 파라미터 지우기 (새로고침 시 또 실행되는 것 방지)
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.pushState({path:newUrl}, '', newUrl);
+            
+            // 토글 버튼 실행
+            toggleDrive();
+        }, 1500); // 1.5초 대기 후 실행
+    }
   }
 
   function saveData() {
