@@ -11,87 +11,61 @@
 
   <style>
     :root {
-      --bg-color: #121212;
-      --surface-color: #1E1E1E;
-      --card-color: #F4F1E1; 
-      --accent-color: #F0713B; 
-      --text-main: #FFFFFF;
-      --text-muted: #888888;
-      --text-card: #121212;
-      --border-radius-pill: 50px;
-      --border-radius-card: 24px;
+      --bg-color: #121212; --surface-color: #1E1E1E; --card-color: #F4F1E1; 
+      --accent-color: #F0713B; --text-main: #FFFFFF; --text-muted: #888888;
+      --text-card: #121212; --border-radius-pill: 50px; --border-radius-card: 24px;
     }
-
     [data-theme="light"] {
-      --bg-color: #F8F9FA;
-      --surface-color: #FFFFFF;
-      --card-color: #FFFFFF;
-      --text-main: #121212;
-      --text-muted: #666666;
-      --text-card: #121212;
+      --bg-color: #F8F9FA; --surface-color: #FFFFFF; --card-color: #FFFFFF;
+      --text-main: #121212; --text-muted: #666666; --text-card: #121212;
     }
 
-    html { overscroll-behavior-y: none; }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-
-    /* 입력 가능한 요소는 텍스트 선택/길게 누르기 정상 동작하도록 예외 처리 */
-    input, textarea {
-      -webkit-touch-callout: default;
-      -webkit-user-select: text;
-      user-select: text;
-    }
-    
-    body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s, color 0.3s; overscroll-behavior-y: none; }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
     #app { max-width: 480px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; position: relative; }
 
     /* 글로벌 헤더 */
     .global-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 10px 20px; flex-shrink: 0; }
-    .brand { display: flex; align-items: center; }
-    .brand-logo { height: 44px; width: auto; object-fit: contain; }
-    
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-logo { height: 36px; width: auto; object-fit: contain; }
     .gps-indicator { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; background: var(--surface-color); padding: 6px 12px; border-radius: var(--border-radius-pill); }
     .gps-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; }
     .gps-dot.green { background: #4CAF50; box-shadow: 0 0 8px #4CAF50; }
     .gps-dot.yellow { background: #FFEB3B; box-shadow: 0 0 8px #FFEB3B; }
     .gps-dot.red { background: #F44336; box-shadow: 0 0 8px #F44336; }
 
-    /* 탭 컨텐츠 */
-    .tab-content { flex: 1; overflow-y: auto; overscroll-behavior-y: contain; padding: 10px 20px 90px 20px; display: none; animation: fadeIn 0.3s ease; }
+    /* 탭 */
+    .tab-content { flex: 1; overflow-y: auto; padding: 10px 20px 90px 20px; display: none; }
     .tab-content.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     /* 메인 화면 */
     .header-area { margin-bottom: 40px; margin-top: 10px; }
     .distance-display h1 { font-size: 3.2rem; font-weight: 800; color: var(--accent-color); line-height: 1.1; letter-spacing: -1px;}
     .distance-display p { font-size: 1rem; color: var(--text-muted); margin-bottom: 8px; }
-    .main-btn-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px; }
+    
+    .main-btn-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
     .main-toggle-btn { width: 220px; height: 220px; border-radius: 50%; border: none; background: var(--surface-color); color: var(--text-main); font-size: 2.2rem; font-weight: bold; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; box-shadow: 10px 10px 20px rgba(0,0,0,0.2), -10px -10px 20px rgba(255,255,255,0.05); transition: all 0.2s ease; cursor: pointer; }
     .main-toggle-btn:active { transform: scale(0.95); box-shadow: inset 10px 10px 20px rgba(0,0,0,0.2), inset -10px -10px 20px rgba(255,255,255,0.05); }
     .main-toggle-btn.is-running { background: var(--accent-color); color: white; box-shadow: 0 0 30px rgba(240, 113, 59, 0.4); }
     .current-location { text-align: center; margin-top: 35px; font-size: 0.95rem; color: var(--text-muted); min-height: 40px; padding: 0 20px; line-height: 1.5; }
 
-    /* 타임라인 카드 (압축형) */
-    .history-month-header { font-size: 1.2rem; font-weight: bold; margin-bottom: 12px; }
-    .swipe-wrapper { position: relative; border-radius: 14px; margin-bottom: 8px; overflow: hidden; }
-    .swipe-delete-bg { position: absolute; top: 0; right: 0; bottom: 0; width: 64px; background: #F44336; display: flex; align-items: center; justify-content: center; color: white; }
-    .timeline-card { background: var(--card-color); color: var(--text-card); border-radius: 14px; padding: 10px 14px; position: relative; margin-bottom: 0; touch-action: pan-y; transition: transform 0.25s ease; will-change: transform; }
-    .card-date { font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; display: flex; justify-content: space-between; font-size: 0.95rem; }
-    .card-row-top { display: flex; justify-content: space-between; align-items: center; }
-    .card-time { font-size: 0.75rem; color: #777; }
-    .card-distance { font-size: 1rem; font-weight: bold; color: var(--accent-color); }
-    .card-route-compact { font-size: 0.78rem; color: #444; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .card-note-badge { font-size: 0.7rem; color: var(--accent-color); margin-top: 2px; }
+    /* 타임라인 */
+    .history-month-header { font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; }
+    .timeline-card { background: var(--card-color); color: var(--text-card); border-radius: var(--border-radius-card); padding: 20px; margin-bottom: 15px; }
+    .card-date { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 10px; display: flex; justify-content: space-between; }
+    .card-route { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 0.95rem; }
+    .route-line { flex: 1; height: 2px; background: rgba(0,0,0,0.1); position: relative; }
+    .route-line::after { content: '>'; position: absolute; right: -5px; top: -7px; color: rgba(0,0,0,0.3); font-weight: bold;}
+    .card-meta { display: flex; justify-content: space-between; font-size: 0.85rem; color: #555; margin-top: 15px; align-items: flex-end;}
+    .card-distance { font-size: 1.2rem; font-weight: bold; color: var(--accent-color); }
 
-    /* 설정 영역 */
+    /* 설정 */
     .settings-group { background: var(--surface-color); border-radius: var(--border-radius-card); padding: 10px 20px; margin-bottom: 20px; }
     .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
     .setting-item:last-child { border-bottom: none; }
-    .setting-label { display: flex; align-items: center; gap: 12px; }
     .setting-action { background: var(--accent-color); color: white; border: none; padding: 8px 16px; border-radius: var(--border-radius-pill); font-weight: bold; cursor: pointer;}
     .setting-danger { background: #F44336; }
     
-    /* 토글 스위치 */
     .toggle-switch { position: relative; width: 50px; height: 28px; }
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
@@ -99,42 +73,24 @@
     input:checked + .slider { background-color: var(--accent-color); }
     input:checked + .slider:before { transform: translateX(22px); }
 
-    /* 하단 네비게이션 바 */
-    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; height: 70px; background: var(--surface-color); display: flex; justify-content: space-around; align-items: center; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.2); z-index: 100; }
-    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); padding: 8px 16px; border-radius: var(--border-radius-pill); cursor: pointer; transition: all 0.3s; }
+    /* 바텀 네비게이션 */
+    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; height: 70px; background: var(--surface-color); display: flex; justify-content: space-around; align-items: center; border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 100; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); padding: 8px 16px; border-radius: var(--border-radius-pill); cursor: pointer; }
     .nav-item.active { background: rgba(240, 113, 59, 0.1); color: var(--accent-color); }
     .nav-item span { font-size: 0.75rem; font-weight: bold; }
 
-    /* 로딩 오버레이 */
+    /* 로딩 */
     .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 2000; flex-direction: column; color: white;}
     .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid var(--accent-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px;}
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-    /* 수정 모달 */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; }
-    .modal-overlay.active { display: flex; }
-    .modal-card { background: var(--surface-color); color: var(--text-main); border-radius: var(--border-radius-card); padding: 24px; width: 100%; max-width: 360px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
-    .modal-field { margin-bottom: 16px; }
-    .modal-field label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
-    .modal-field input, .modal-field textarea { width: 100%; background: var(--bg-color); color: var(--text-main); border: 1px solid #444; border-radius: 8px; padding: 10px; font-size: 1rem; resize: none; font-family: inherit; }
-    .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
-    .modal-btn { flex: 1; padding: 12px; border: none; border-radius: var(--border-radius-pill); font-weight: bold; cursor: pointer; font-size: 0.95rem; }
-    .modal-btn-cancel { background: #444; color: white; }
-    .modal-btn-save { background: var(--accent-color); color: white; }
-
   </style>
 </head>
 <body>
 
 <div id="app">
   <header class="global-header">
-    <div class="brand">
-      <img src="header_logo.png" alt="DriveLog Logo" class="brand-logo" onerror="this.style.display='none'">
-    </div>
-    <div class="gps-indicator">
-      <div id="gps-dot" class="gps-dot red"></div>
-      <span id="gps-text">GPS 확인중</span>
-    </div>
+    <div class="brand"><img src="header_logo.png" alt="DriveLog Logo" class="brand-logo" onerror="this.style.display='none'"></div>
+    <div class="gps-indicator"><div id="gps-dot" class="gps-dot red"></div><span id="gps-text">GPS 대기중</span></div>
   </header>
 
   <div id="tab-main" class="tab-content active">
@@ -142,7 +98,7 @@
       <div class="distance-display">
         <p>오늘 누적 이동 거리</p>
         <h1><span id="today-distance">0.0</span> <span style="font-size: 1.2rem;">km</span></h1>
-        <p style="margin-top:8px; font-size:1.05rem;">이번 달 누계: <span id="month-distance" style="font-size:1.3rem; font-weight:700; color:var(--text-main);">0.0</span> km</p>
+        <p style="margin-top:5px; font-size:0.85rem;">이번 달 누계: <span id="month-distance">0.0</span> km</p>
       </div>
     </div>
     <div class="main-btn-container">
@@ -152,56 +108,50 @@
       </button>
       <div class="current-location">
         <i data-lucide="map-pin" style="width:16px; height:16px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
-        <span id="location-text">위치 정보를 파악하고 있습니다...</span>
+        <span id="location-text">위치를 파악하고 있습니다...</span>
       </div>
     </div>
   </div>
 
-  <div id="tab-history" class="tab-content">
-    <div class="history-month-header" id="history-month-title">전체 내역</div>
-    <div id="history-list"></div>
-  </div>
+  <div id="tab-history" class="tab-content"><div id="history-list"></div></div>
 
   <div id="tab-settings" class="tab-content">
-    <h2 style="margin-bottom: 20px;">설정 및 관리</h2>
+    <h2 style="margin-bottom: 20px;">설정</h2>
+    <div class="settings-group">
+      <div class="setting-item">
+        <div><i data-lucide="moon"></i> 다크 모드</div>
+        <label class="toggle-switch"><input type="checkbox" id="setting-darkmode" checked onchange="toggleDarkMode()"><span class="slider"></span></label>
+      </div>
+      <div class="setting-item">
+        <div><i data-lucide="gauge"></i> 계기판 오차 보정 (+%)</div>
+        <input type="number" id="setting-offset" value="3" onchange="saveSettings()" style="width:60px; text-align:right; background:var(--bg-color); color:var(--text-main); border:1px solid #444; padding:5px; border-radius:8px;">
+      </div>
+      <div class="setting-item">
+        <div><i data-lucide="vibrate"></i> NFC/버튼 진동 알림</div>
+        <label class="toggle-switch"><input type="checkbox" id="setting-haptic" checked onchange="saveSettings()"><span class="slider"></span></label>
+      </div>
+      <div class="setting-item">
+        <div><i data-lucide="calendar-clock"></i> 3개월 지난 기록 자동삭제</div>
+        <label class="toggle-switch"><input type="checkbox" id="setting-autodelete" onchange="saveSettings()"><span class="slider"></span></label>
+      </div>
+    </div>
     
     <div class="settings-group">
       <div class="setting-item">
-        <div class="setting-label"><i data-lucide="moon"></i> 다크 모드</div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="setting-darkmode" checked onchange="toggleDarkMode()">
-          <span class="slider"></span>
-        </label>
+        <div><i data-lucide="save"></i> 데이터 백업 (내장메모리)</div>
+        <button class="setting-action" onclick="backupData()">백업</button>
       </div>
       <div class="setting-item">
-        <div class="setting-label"><i data-lucide="smartphone"></i> 햅틱(진동)</div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="setting-haptic" checked onchange="saveSettings()">
-          <span class="slider"></span>
-        </label>
+        <div><i data-lucide="folder-up"></i> 데이터 복원 (파일선택)</div>
+        <button class="setting-action" style="background:#4CAF50;" onclick="document.getElementById('restore-file').click()">복원</button>
+        <input type="file" id="restore-file" accept=".json" style="display:none;" onchange="restoreData(event)">
       </div>
       <div class="setting-item">
-        <div class="setting-label">
-          <div><i data-lucide="map"></i> 주소 표기</div>
-        </div>
-        <select id="setting-address" onchange="saveSettings()" style="background:var(--bg-color); color:var(--text-main); border:1px solid #444; padding:5px; border-radius:8px;">
-          <option value="jibun">지번 우선</option>
-          <option value="road">도로명 우선</option>
-        </select>
-      </div>
-      <div class="setting-item">
-        <div class="setting-label"><i data-lucide="gauge"></i> 계기판 오차 (+%)</div>
-        <input type="number" id="setting-offset" value="3" onchange="saveSettings()" style="width:60px; text-align:right; background:var(--bg-color); color:var(--text-main); border:1px solid #444; padding:5px; border-radius:8px;">
-      </div>
-    </div>
-
-    <div class="settings-group">
-      <div class="setting-item">
-        <div class="setting-label"><i data-lucide="file-spreadsheet"></i> 엑셀(CSV) 다운로드</div>
+        <div><i data-lucide="file-spreadsheet"></i> 엑셀(CSV) 다운로드</div>
         <button class="setting-action" onclick="exportCSV()">다운로드</button>
       </div>
       <div class="setting-item">
-        <div class="setting-label" style="color:#F44336;"><i data-lucide="trash-2"></i> 데이터 초기화</div>
+        <div style="color:#F44336;"><i data-lucide="trash-2"></i> 데이터 초기화</div>
         <button class="setting-action setting-danger" onclick="resetData()">초기화</button>
       </div>
     </div>
@@ -213,138 +163,64 @@
     <div class="nav-item" onclick="switchTab('settings')" id="nav-settings"><i data-lucide="settings"></i><span>설정</span></div>
   </nav>
 
-  <div class="loading-overlay" id="loading-overlay"><div class="spinner"></div><p id="loading-text">처리중...</p></div>
-
-  <div class="modal-overlay" id="edit-modal">
-    <div class="modal-card">
-      <h3 style="margin-bottom:20px;">운행 기록 수정</h3>
-      <div class="modal-field">
-        <label>주행거리 (km)</label>
-        <input type="number" id="edit-distance" step="0.1" inputmode="decimal">
-      </div>
-      <div class="modal-field">
-        <label>비고 / 메모</label>
-        <textarea id="edit-note" rows="3" placeholder="방문지나 목적을 입력하세요"></textarea>
-      </div>
-      <div class="modal-actions">
-        <button class="modal-btn modal-btn-cancel" onclick="closeEditModal()">취소</button>
-        <button class="modal-btn modal-btn-save" onclick="saveEditModal()">저장</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="alert-modal">
-    <div class="modal-card">
-      <p id="alert-message" style="margin-bottom:20px; line-height:1.5; white-space:pre-line;"></p>
-      <div class="modal-actions" id="alert-actions"></div>
-    </div>
-  </div>
+  <div class="loading-overlay" id="loading-overlay"><div class="spinner"></div><p id="loading-text">계산중...</p></div>
 </div>
 
 <script>
   lucide.createIcons();
 
-  // 길게 누르기 시 나오는 브라우저 기본 메뉴(웹 검색/공유 등) 차단 — 입력 요소는 예외
-  document.addEventListener('contextmenu', e => {
-    if (!['INPUT', 'TEXTAREA'].includes(e.target.tagName)) e.preventDefault();
-  });
-
-  // ★ 생성한 Cloudflare 프록시 주소 (반드시 https:// 로 시작해야 합니다)
-  const PROXY_URL = "https://drivelog-proxy.jhkang7989.workers.dev";
-
+  /* 1. 상태 관리 */
   let appState = {
     isRunning: false,
     currentTrip: null,
     records: [],
-    settings: { darkMode: true, haptic: true, addressPref: 'jibun', offsetPercent: 3 }
+    settings: { darkMode: true, offsetPercent: 3, haptic: true, autoDelete: false }
   };
 
-  function showAlert(message) {
-    return new Promise(resolve => {
-      document.getElementById('alert-message').innerText = message;
-      const actions = document.getElementById('alert-actions');
-      actions.innerHTML = `<button class="modal-btn modal-btn-save" id="alert-ok-btn">확인</button>`;
-      document.getElementById('alert-modal').classList.add('active');
-      document.getElementById('alert-ok-btn').onclick = () => {
-        document.getElementById('alert-modal').classList.remove('active');
-        resolve();
-      };
-    });
-  }
-
-  function showConfirm(message) {
-    return new Promise(resolve => {
-      document.getElementById('alert-message').innerText = message;
-      const actions = document.getElementById('alert-actions');
-      actions.innerHTML = `
-        <button class="modal-btn modal-btn-cancel" id="confirm-cancel-btn">취소</button>
-        <button class="modal-btn modal-btn-save" id="confirm-ok-btn">확인</button>
-      `;
-      document.getElementById('alert-modal').classList.add('active');
-      document.getElementById('confirm-cancel-btn').onclick = () => {
-        document.getElementById('alert-modal').classList.remove('active');
-        resolve(false);
-      };
-      document.getElementById('confirm-ok-btn').onclick = () => {
-        document.getElementById('alert-modal').classList.remove('active');
-        resolve(true);
-      };
-    });
-  }
-
   function loadData() {
-    const data = localStorage.getItem('driveRecords_v4');
-    if (data) appState = JSON.parse(data);
+    const data = localStorage.getItem('driveRecords_osrm');
+    if (data) {
+      const parsed = JSON.parse(data);
+      // 구버전 데이터 호환성을 위해 새 설정값 기본 부여
+      appState = { ...parsed, settings: { haptic: true, autoDelete: false, ...parsed.settings } };
+    }
     
     document.getElementById('setting-darkmode').checked = appState.settings.darkMode !== false;
-    document.getElementById('setting-haptic').checked = appState.settings.haptic !== false;
-    document.getElementById('setting-address').value = appState.settings.addressPref || 'jibun';
     document.getElementById('setting-offset').value = appState.settings.offsetPercent || 3;
+    document.getElementById('setting-haptic').checked = appState.settings.haptic !== false;
+    document.getElementById('setting-autodelete').checked = appState.settings.autoDelete === true;
     
     toggleDarkMode(true);
+    checkAutoDelete(); // 앱 켤 때 자동삭제 체크
     updateMainUI();
-
-    // NFC 단축어 자동 실행 로직 — GPS가 실제로 잡힐 때까지 기다렸다가 실행 (최대 8초)
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('action') === 'toggle') {
-        // 재실행/중복실행 방지를 위해 URL의 쿼리 파라미터를 즉시 제거
-        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-        window.history.replaceState({path:newUrl}, '', newUrl);
-
-        showLoading(true, "NFC 인식됨 - GPS 위치 확인 중...");
-        const maxWaitMs = 8000;
-        const checkIntervalMs = 300;
-        let waited = 0;
-
-        const waitForGps = setInterval(() => {
-          if (currentLocation) {
-            clearInterval(waitForGps);
-            showLoading(false);
-            toggleDrive();
-          } else {
-            waited += checkIntervalMs;
-            if (waited >= maxWaitMs) {
-              clearInterval(waitForGps);
-              showLoading(false);
-              showAlert('GPS 신호를 받지 못했습니다.\n하늘이 잘 보이는 곳에서 다시 태그하거나, 앱에서 직접 "출발/도착" 버튼을 눌러주세요.');
-            }
-          }
-        }, checkIntervalMs);
-    }
   }
 
   function saveData() {
-    localStorage.setItem('driveRecords_v4', JSON.stringify(appState));
+    localStorage.setItem('driveRecords_osrm', JSON.stringify(appState));
     updateMainUI();
   }
 
   function saveSettings() {
     appState.settings.darkMode = document.getElementById('setting-darkmode').checked;
-    appState.settings.haptic = document.getElementById('setting-haptic').checked;
-    appState.settings.addressPref = document.getElementById('setting-address').value;
     appState.settings.offsetPercent = parseFloat(document.getElementById('setting-offset').value) || 0;
+    appState.settings.haptic = document.getElementById('setting-haptic').checked;
+    appState.settings.autoDelete = document.getElementById('setting-autodelete').checked;
     saveData();
-    renderHistory();
+    checkAutoDelete();
+  }
+  
+  function checkAutoDelete() {
+    if (!appState.settings.autoDelete || !appState.records || appState.records.length === 0) return;
+    const today = new Date();
+    const threeMonthsAgo = new Date(today.setMonth(today.getMonth() - 3));
+    
+    const originalLen = appState.records.length;
+    appState.records = appState.records.filter(r => new Date(r.date) >= threeMonthsAgo);
+    
+    if (originalLen > appState.records.length) {
+      console.log(`${originalLen - appState.records.length}개의 오래된 데이터가 자동 삭제되었습니다.`);
+      saveData();
+    }
   }
 
   function toggleDarkMode(init = false) {
@@ -352,19 +228,83 @@
     document.body.setAttribute('data-theme', appState.settings.darkMode ? 'dark' : 'light');
   }
 
-  /* GPS 제어 */
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.getElementById(`tab-${tabId}`).classList.add('active');
+    document.getElementById(`nav-${tabId}`).classList.add('active');
+    if(tabId === 'history') renderHistory();
+  }
+  
+  function showLoading(show, text="처리중...") {
+    document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
+    document.getElementById('loading-text').innerText = text;
+  }
+
+  /* 2. 외부 오픈 API (주소 변환 및 길찾기) - CORS 없음, 키 없음 */
+  
+  // 무료 주소 변환 (BigDataCloud API)
+  async function getFreeAddress(lat, lng) {
+    try {
+      const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=ko`;
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      let addr = "";
+      if(data.city) addr += data.city + " ";
+      if(data.locality) addr += data.locality;
+      
+      return addr.trim() || `(위도:${lat.toFixed(3)}, 경도:${lng.toFixed(3)})`;
+    } catch(e) {
+      return `(좌표 기록: ${lat.toFixed(3)}, ${lng.toFixed(3)})`;
+    }
+  }
+
+  // 직선거리 계산용 (백업용)
+  function getStraightDist(lat1, lon1, lat2, lon2) {
+    const R = 6371; 
+    const dLat = (lat2-lat1) * (Math.PI/180); const dLon = (lon2-lon1) * (Math.PI/180); 
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c; 
+  }
+
+  // 무료 길찾기 거리 계산 (OSRM Project API)
+  async function calculateDriveDistance(startLat, startLng, endLat, endLng) {
+    const straightDist = getStraightDist(startLat, startLng, endLat, endLng);
+    try {
+      // OSRM API (경도,위도 순서 주의)
+      const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=false`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if(data.routes && data.routes.length > 0) {
+        let driveDistKm = data.routes[0].distance / 1000; // 미터를 km로 변환
+        return driveDistKm;
+      }
+      return straightDist * 1.3; // 경로를 못 찾으면 직선거리에 1.3배 가중치 (오프라인 등)
+    } catch(e) {
+      console.warn("OSRM API 실패, 직선거리 백업 사용", e);
+      return straightDist * 1.3;
+    }
+  }
+
+  /* 3. GPS 및 운행 로직 */
   let currentLocation = null;
+  
   navigator.geolocation.watchPosition(
-    (pos) => {
-      currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
       const acc = pos.coords.accuracy;
+      currentLocation = { lat, lng };
+
       const dot = document.getElementById('gps-dot');
-      const txt = document.getElementById('gps-text');
       dot.className = 'gps-dot ' + (acc < 30 ? 'green' : acc < 100 ? 'yellow' : 'red');
-      txt.innerText = acc < 30 ? 'GPS 매우좋음' : acc < 100 ? 'GPS 양호' : 'GPS 약함';
+      document.getElementById('gps-text').innerText = acc < 30 ? 'GPS 매우좋음' : acc < 100 ? 'GPS 양호' : 'GPS 약함';
       
       if(!appState.isRunning && document.getElementById('location-text').innerText.includes('파악')) {
-        fetchAndDisplayAddress(currentLocation.lat, currentLocation.lng);
+        document.getElementById('location-text').innerText = await getFreeAddress(lat, lng);
       }
     },
     (err) => {
@@ -374,138 +314,77 @@
     { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
   );
 
-  function triggerHaptic() { if (appState.settings.haptic && navigator.vibrate) navigator.vibrate(50); }
-
-  function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    document.getElementById(`tab-${tabId}`).classList.add('active');
-    document.getElementById(`nav-${tabId}`).classList.add('active');
-    if(tabId === 'history') renderHistory();
-  }
-
-  function showLoading(show, text="처리중...") {
-    document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
-    document.getElementById('loading-text').innerText = text;
-  }
-
-  /* API 호출 로직 (Cloudflare 프록시 서버 경유) */
-  async function getAddressesFromCoords(lat, lng) {
-    if (!navigator.onLine) return { road: `오프라인(위도:${lat.toFixed(4)})`, jibun: `오프라인(경도:${lng.toFixed(4)})` };
-    
-    try {
-      // 진짜 목표 주소를 프록시 서버에 ?target= 형태로 넘김
-      const targetUrl = encodeURIComponent(`https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&orders=addr,roadaddr&output=json`);
-      const response = await fetch(`${PROXY_URL}/?target=${targetUrl}`);
-      const data = await response.json();
-      
-      let road = "", jibun = "";
-      if(data.results && data.results.length > 0) {
-        data.results.forEach(res => {
-          const name = res.region.area1.name + " " + res.region.area2.name + " " + res.region.area3.name + " ";
-          if(res.name === 'roadaddr') road = name + res.land.name + " " + res.land.number1;
-          if(res.name === 'addr') jibun = name + res.land.number1 + (res.land.number2 ? "-"+res.land.number2 : "");
-        });
-      }
-      return { road: road.trim(), jibun: jibun.trim() };
-    } catch(e) { 
-      console.error("주소 변환 프록시 오류:", e);
-      return { road: `(API오류) 위도:${lat.toFixed(4)}`, jibun: `(API오류) 경도:${lng.toFixed(4)}` }; 
-    }
-  }
-
-  async function calculateDistance(startLat, startLng, endLat, endLng) {
-    const straightDist = getDistanceFromLatLonInKm(startLat, startLng, endLat, endLng);
-
-    // 이동거리가 너무 짧으면(30m 미만) 출발=도착으로 간주하고 API 호출 자체를 생략
-    // (Directions API가 출발/도착이 동일하거나 너무 가까우면 400 에러를 반환하는 문제 예방 + API 사용량 절약)
-    const MIN_DISTANCE_KM = 0.03;
-    if (straightDist < MIN_DISTANCE_KM) {
-      return { distanceKm: straightDist, estimated: false };
-    }
-
-    if (!navigator.onLine) return { distanceKm: straightDist * 1.3, estimated: true };
-
-    try {
-      const targetUrl = encodeURIComponent(`https://maps.apigw.ntruss.com/map-direction/v1/driving?start=${startLng},${startLat}&goal=${endLng},${endLat}`);
-      const response = await fetch(`${PROXY_URL}/?target=${targetUrl}`);
-
-      if (!response.ok) {
-        console.warn(`거리 계산 API 실패 (status ${response.status}) - 직선거리로 대체`);
-        return { distanceKm: straightDist * 1.3, estimated: true };
-      }
-
-      const data = await response.json();
-      if(data.route && data.route.traoptimal) {
-        return { distanceKm: data.route.traoptimal[0].summary.distance / 1000, estimated: false };
-      }
-      return { distanceKm: straightDist * 1.3, estimated: true };
-    } catch(e) {
-      console.error("거리 계산 프록시 오류:", e);
-      return { distanceKm: straightDist * 1.3, estimated: true };
-    }
-  }
-
-  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-    const R = 6371; const dLat = (lat2-lat1) * (Math.PI/180); const dLon = (lon2-lon1) * (Math.PI/180); 
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R * c; 
-  }
-
-  async function fetchAndDisplayAddress(lat, lng) {
-    const addr = await getAddressesFromCoords(lat, lng);
-    const pref = appState.settings.addressPref;
-    const resultAddr = pref === 'road' ? (addr.road || addr.jibun) : (addr.jibun || addr.road);
-    
-    if(!resultAddr || resultAddr.includes('API오류')) {
-       document.getElementById('location-text').innerHTML = `<span style="color:#F44336;">주소 변환 API 오류 발생</span><br>(좌표로 대체 기록됩니다)`;
-    } else {
-       document.getElementById('location-text').innerText = resultAddr;
-    }
-  }
-
-  /* 운행 로직 */
   async function toggleDrive() {
-    triggerHaptic();
-    if (!currentLocation) { await showAlert('GPS 위치를 파악하는 중입니다.'); return; }
+    if (appState.settings.haptic && navigator.vibrate) navigator.vibrate(50);
+    if (!currentLocation) return alert('GPS 위치를 파악하는 중입니다. 초록불이 켜지면 다시 시도해주세요.');
 
-    showLoading(true, "위치 정보를 처리하고 있습니다...");
+    showLoading(true, "위치 정보를 기록 중입니다...");
 
     if (!appState.isRunning) {
-      const addr = await getAddressesFromCoords(currentLocation.lat, currentLocation.lng);
-      appState.currentTrip = { id: Date.now(), startTime: new Date().toISOString(), startLat: currentLocation.lat, startLng: currentLocation.lng, startAddrRoad: addr.road, startAddrJibun: addr.jibun };
+      // ===== 출발 ===== (화면을 꺼도 상관없음)
+      const startAddr = await getFreeAddress(currentLocation.lat, currentLocation.lng);
+      appState.currentTrip = { 
+        id: Date.now(), 
+        startTime: new Date().toISOString(), 
+        startAddr: startAddr,
+        startLat: currentLocation.lat, // 출발 좌표 찰칵!
+        startLng: currentLocation.lng
+      };
       appState.isRunning = true;
       saveData();
+      showLoading(false);
+      
     } else {
-      const endAddr = await getAddressesFromCoords(currentLocation.lat, currentLocation.lng);
+      // ===== 도착 ===== (도착해서 켰을 때, 출발-도착 좌표로 실제 도로 경로 거리를 계산)
+      const endAddr = await getFreeAddress(currentLocation.lat, currentLocation.lng);
       const trip = appState.currentTrip;
-      const distResult = await calculateDistance(trip.startLat, trip.startLng, currentLocation.lat, currentLocation.lng);
-      let finalDistance = Math.round((distResult.distanceKm * (1 + (appState.settings.offsetPercent / 100))) * 10) / 10;
+      
+      showLoading(true, "주행 경로와 거리를 계산 중입니다...");
+      
+      // 실제 도로 주행거리 계산 호출
+      let rawDistance = await calculateDriveDistance(trip.startLat, trip.startLng, currentLocation.lat, currentLocation.lng);
+      
+      // 오차율(%) 반영
+      let finalDistance = rawDistance * (1 + (appState.settings.offsetPercent / 100));
+      finalDistance = Math.round(finalDistance * 10) / 10;
+
+      const newRecord = { 
+        id: trip.id, 
+        date: new Date().toISOString().split('T')[0], 
+        startTime: trip.startTime, 
+        endTime: new Date().toISOString(), 
+        startAddr: trip.startAddr, 
+        endAddr: endAddr, 
+        distance: finalDistance, 
+        note: "" 
+      };
 
       if (!appState.records) appState.records = [];
-      appState.records.push({ id: trip.id, date: new Date().toISOString().split('T')[0], startTime: trip.startTime, endTime: new Date().toISOString(), startAddrRoad: trip.startAddrRoad, startAddrJibun: trip.startAddrJibun, endAddrRoad: endAddr.road, endAddrJibun: endAddr.jibun, distance: finalDistance, note: distResult.estimated ? "⚠️ 거리 추정치(직선거리 기반)" : "" });
+      appState.records.push(newRecord);
       
       appState.isRunning = false;
       appState.currentTrip = null;
       saveData();
-
-      if (distResult.estimated) {
-        document.getElementById('location-text').innerHTML = `<span style="color:#FFB74D;">거리 계산 API 오류 발생</span><br>(직선거리 기반으로 추정 계산되었습니다)`;
-      }
+      
+      showLoading(false);
+      
+      // NFC 켜짐 딜레이로 인해 화면이 바로 안보일 수 있어 약간의 딜레이 후 alert
+      setTimeout(() => alert(`운행 종료! 총 ${finalDistance}km 기록되었습니다.`), 500); 
     }
-    showLoading(false);
   }
 
+  /* 4. UI 및 내역 출력 */
   function updateMainUI() {
     const btn = document.getElementById('btn-toggle-drive');
     const btnText = document.getElementById('btn-text');
     const btnIcon = document.getElementById('btn-icon');
     
     if (appState.isRunning) {
-      btn.classList.add('is-running'); btnText.innerText = '도착'; btnIcon.setAttribute('data-lucide', 'square'); lucide.createIcons();
+      btn.classList.add('is-running'); btnText.innerText = '도착'; btnIcon.setAttribute('data-lucide', 'square');
     } else {
-      btn.classList.remove('is-running'); btnText.innerText = '출발'; btnIcon.setAttribute('data-lucide', 'play'); lucide.createIcons();
+      btn.classList.remove('is-running'); btnText.innerText = '출발'; btnIcon.setAttribute('data-lucide', 'play');
     }
+    lucide.createIcons();
 
     const today = new Date().toISOString().split('T')[0];
     const currentMonth = today.substring(0, 7);
@@ -515,11 +394,11 @@
       if (r.date === today) todayDist += r.distance;
       if (r.date.startsWith(currentMonth)) monthDist += r.distance;
     });
+    
     document.getElementById('today-distance').innerText = todayDist.toFixed(1);
     document.getElementById('month-distance').innerText = monthDist.toFixed(1);
   }
 
-  /* 타임라인 및 엑셀 다운로드 */
   function renderHistory() {
     const list = document.getElementById('history-list');
     list.innerHTML = '';
@@ -534,157 +413,119 @@
       let html = `<div class="card-date">${date} <span>총 ${dailyTotal} km</span></div>`;
       
       records.reverse().forEach(r => {
-        let sAddr = appState.settings.addressPref === 'road' ? (r.startAddrRoad || r.startAddrJibun) : (r.startAddrJibun || r.startAddrRoad);
-        let eAddr = appState.settings.addressPref === 'road' ? (r.endAddrRoad || r.endAddrJibun) : (r.endAddrJibun || r.endAddrRoad);
-        
-        if(!sAddr || sAddr.includes('API오류')) sAddr = '(주소 정보 없음)';
-        if(!eAddr || eAddr.includes('API오류')) eAddr = '(주소 정보 없음)';
-
         let sTime = new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         let eTime = r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '진행중';
 
-        html += `<div class="swipe-wrapper" data-id="${r.id}">
-          <div class="swipe-delete-bg" onclick="deleteRecord(${r.id})"><i data-lucide="trash-2" style="width:18px; height:18px;"></i></div>
-          <div class="timeline-card" data-id="${r.id}">
-            <div class="card-row-top">
-              <span class="card-time">${sTime} ~ ${eTime}</span>
-              <span class="card-distance">${r.distance.toFixed(1)} km</span>
-            </div>
-            <div class="card-route-compact">${sAddr} → ${eAddr}</div>
-            ${r.note ? `<div class="card-note-badge">${r.note}</div>` : ''}
+        html += `
+        <div class="timeline-card" onclick="editRecord(${r.id})">
+          <div style="font-size: 0.85rem; color: #777; margin-bottom: 8px;">${sTime} ~ ${eTime}</div>
+          <div class="card-route"><div style="flex:1;">${r.startAddr}</div><div class="route-line"></div><div style="flex:1; text-align:right;">${r.endAddr}</div></div>
+          <div class="card-meta">
+            <div style="color:var(--accent-color); font-size:0.8rem;">${r.note || '메모 입력 (터치)'}</div>
+            <div class="card-distance">${r.distance.toFixed(1)} km</div>
           </div>
         </div>`;
       });
       list.innerHTML += html;
     });
-
-    lucide.createIcons();
-    attachSwipeHandlers();
   }
-
-  /* 카드 스와이프(좌측으로 밀어 삭제) 처리 */
-  const SWIPE_OPEN_PX = 64;
-  function attachSwipeHandlers() {
-    document.querySelectorAll('.timeline-card').forEach(card => {
-      let startX = 0, currentX = 0, dragging = false, moved = false;
-
-      const onStart = (x) => { startX = x; dragging = true; moved = false; card.style.transition = 'none'; };
-      const onMove = (x) => {
-        if (!dragging) return;
-        let delta = x - startX;
-        // 왼쪽으로만 밀리게 제한 (오른쪽으로는 안 열림), 최대 SWIPE_OPEN_PX 만큼만
-        delta = Math.min(0, Math.max(delta, -SWIPE_OPEN_PX));
-        if (Math.abs(delta) > 5) moved = true;
-        currentX = delta;
-        card.style.transform = `translateX(${currentX}px)`;
-      };
-      const onEnd = () => {
-        if (!dragging) return;
-        dragging = false;
-        card.style.transition = 'transform 0.25s ease';
-        // 절반 이상 밀렸으면 완전히 열어서 고정, 아니면 원위치
-        if (currentX < -SWIPE_OPEN_PX / 2) {
-          card.style.transform = `translateX(-${SWIPE_OPEN_PX}px)`;
-        } else {
-          card.style.transform = 'translateX(0)';
-        }
-      };
-
-      card.addEventListener('touchstart', e => onStart(e.touches[0].clientX), { passive: true });
-      card.addEventListener('touchmove', e => onMove(e.touches[0].clientX), { passive: true });
-      card.addEventListener('touchend', onEnd);
-
-      // 데스크톱 테스트용 마우스 지원
-      card.addEventListener('mousedown', e => onStart(e.clientX));
-      card.addEventListener('mousemove', e => { if (dragging) onMove(e.clientX); });
-      card.addEventListener('mouseup', onEnd);
-      card.addEventListener('mouseleave', () => { if (dragging) onEnd(); });
-
-      // 스와이프(드래그)가 아니었을 때만 편집 모달 열기
-      card.addEventListener('click', () => {
-        if (moved) { moved = false; return; }
-        editRecord(parseInt(card.dataset.id));
-      });
-    });
-  }
-
-  async function deleteRecord(id) {
-    const ok = await showConfirm('이 운행 기록을 삭제하시겠습니까?');
-    if (!ok) {
-      // 취소 시 카드 원위치
-      const card = document.querySelector(`.timeline-card[data-id="${id}"]`);
-      if (card) card.style.transform = 'translateX(0)';
-      return;
-    }
-    appState.records = appState.records.filter(r => r.id !== id);
-    saveData();
-    renderHistory();
-  }
-
-  let editingRecordId = null;
 
   function editRecord(id) {
     const r = appState.records.find(x => x.id === id);
     if(!r) return;
-    editingRecordId = id;
-    document.getElementById('edit-distance').value = r.distance;
-    document.getElementById('edit-note').value = r.note || '';
-    document.getElementById('edit-modal').classList.add('active');
+    const action = prompt(`수정할 항목을 선택하세요.\n1. 주행거리 수정\n2. 비고(메모) 수정`, "1");
+    if (action === "1") { const newDist = prompt('실제 주행거리(km)를 입력하세요.', r.distance); if(newDist !== null && !isNaN(newDist)) r.distance = parseFloat(newDist); } 
+    else if (action === "2") { const newNote = prompt('방문지나 메모를 입력하세요.', r.note); if(newNote !== null) r.note = newNote; }
+    saveData(); renderHistory();
   }
 
-  function closeEditModal() {
-    document.getElementById('edit-modal').classList.remove('active');
-    editingRecordId = null;
-  }
-
-  function saveEditModal() {
-    const r = appState.records.find(x => x.id === editingRecordId);
-    if(!r) return closeEditModal();
-
-    const newDist = parseFloat(document.getElementById('edit-distance').value);
-    if(!isNaN(newDist)) r.distance = newDist;
-    r.note = document.getElementById('edit-note').value;
-
-    saveData();
-    renderHistory();
-    closeEditModal();
-  }
-
-  async function exportCSV() {
-    if(!appState.records || appState.records.length === 0) { await showAlert('데이터가 없습니다.'); return; }
-    let csvContent = "\uFEFF일자,출발시간,도착시간,출발지,도착지,주행거리(km),비고\n";
+  function exportCSV() {
+    if(!appState.records || appState.records.length === 0) return alert('데이터가 없습니다.');
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF일자,출발시간,도착시간,출발지,도착지,주행거리(km),비고\n";
     const sorted = [...appState.records].sort((a,b) => new Date(a.startTime) - new Date(b.startTime));
-    let prevDate = null; let dailySum = 0;
     const escape = str => `"${String(str || '').replace(/"/g, '""')}"`;
 
     sorted.forEach(r => {
-      if(prevDate && prevDate !== r.date) { csvContent += `${prevDate} 총합,,,,,${dailySum.toFixed(1)}\n`; dailySum = 0; }
-      prevDate = r.date; dailySum += r.distance;
-      let sAddr = appState.settings.addressPref === 'road' ? (r.startAddrRoad || r.startAddrJibun) : (r.startAddrJibun || r.startAddrRoad);
-      let eAddr = appState.settings.addressPref === 'road' ? (r.endAddrRoad || r.endAddrJibun) : (r.endAddrJibun || r.endAddrRoad);
-      csvContent += `${r.date},${new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})},${r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''},${escape(sAddr)},${escape(eAddr)},${r.distance.toFixed(1)},${escape(r.note)}\n`;
+      csvContent += `${r.date},${new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})},${r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''},${escape(r.startAddr)},${escape(r.endAddr)},${r.distance.toFixed(1)},${escape(r.note)}\n`;
     });
-    if(prevDate) csvContent += `${prevDate} 총합,,,,,${dailySum.toFixed(1)}\n`;
+    const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", `운행기록_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link); link.click();
+  }
 
-    // data URI 대신 Blob 방식 사용 — iOS 홈 화면(standalone) PWA에서 data URI 다운로드가
-    // 씹히거나 새 탭에 텍스트로만 열리는 문제가 있어서, 호환성이 더 나은 Blob+ObjectURL로 변경
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  function resetData() { if(confirm('모든 데이터를 삭제하시겠습니까?')) { localStorage.removeItem('driveRecords_osrm'); window.location.reload(); } }
+
+  /* 백업 & 복원 기능 추가 */
+  function backupData() {
+    if(!appState.records || appState.records.length === 0) return alert('백업할 데이터가 없습니다.');
+    const dataStr = JSON.stringify(appState);
+    const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `운행기록_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
+    
+    const link = document.createElement("a"); 
+    link.href = url; 
+    link.download = "drivelog_backup.json"; // 덮어쓰기를 위해 항상 같은 이름 사용
+    document.body.appendChild(link); 
     link.click();
     document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    URL.revokeObjectURL(url);
+    
+    if (appState.settings.haptic && navigator.vibrate) navigator.vibrate([30, 50, 30]);
+    alert("데이터가 내장 메모리(다운로드 폴더)에 백업되었습니다.");
   }
 
-  async function resetData() {
-    const ok = await showConfirm('정말로 모든 데이터를 삭제하시겠습니까? (복구 불가능)');
-    if (ok) { localStorage.removeItem('driveRecords_v4'); window.location.reload(); }
+  function restoreData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const importedData = JSON.parse(e.target.result);
+        if (importedData && importedData.records) {
+          if (confirm("복원하면 현재 기록에 백업 데이터가 덮어씌워집니다. 계속하시겠습니까?")) {
+            appState = importedData;
+            saveData();
+            loadData(); // 설정 스위치 등 UI 새로고침
+            switchTab('history'); // 내역 탭으로 이동
+            alert("백업 데이터가 성공적으로 복원되었습니다!");
+          }
+        } else {
+          alert("유효하지 않은 백업 파일입니다.");
+        }
+      } catch (err) {
+        alert("파일을 읽는 중 오류가 발생했습니다.");
+      }
+      // 같은 파일을 다시 선택할 수 있도록 input 초기화
+      event.target.value = ''; 
+    };
+    reader.readAsText(file);
   }
 
-  window.onload = loadData;
+  // [중요] NFC로 앱 실행 시 자동 출발/도착 처리 (백그라운드 대응 버전)
+  window.onload = () => {
+    loadData();
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'toggle') {
+      // 주소창에서 파라미터 숨기기 (새로고침 시 중복실행 방지)
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // GPS가 잡힐 때까지 기다렸다가 출발/도착 버튼 누르기
+      let attempts = 0;
+      const checkGPS = setInterval(() => {
+        if (currentLocation) {
+          clearInterval(checkGPS);
+          setTimeout(() => toggleDrive(), 500); // UI 안정화 후 클릭
+        } else {
+          attempts++;
+          if(attempts > 10) { // 5초 지나도 못 찾으면 포기
+            clearInterval(checkGPS);
+            alert("NFC 자동실행 실패: GPS를 찾을 수 없습니다.");
+          }
+        }
+      }, 500);
+    }
+  };
+
 </script>
 </body>
 </html>
