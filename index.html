@@ -31,9 +31,17 @@
       --text-card: #121212;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    html { overscroll-behavior-y: none; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+    /* 입력 가능한 요소는 텍스트 선택/길게 누르기 정상 동작하도록 예외 처리 */
+    input, textarea {
+      -webkit-touch-callout: default;
+      -webkit-user-select: text;
+      user-select: text;
+    }
     
-    body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s, color 0.3s; }
+    body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s, color 0.3s; overscroll-behavior-y: none; }
 
     #app { max-width: 480px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; position: relative; }
 
@@ -49,7 +57,7 @@
     .gps-dot.red { background: #F44336; box-shadow: 0 0 8px #F44336; }
 
     /* 탭 컨텐츠 */
-    .tab-content { flex: 1; overflow-y: auto; padding: 10px 20px 90px 20px; display: none; animation: fadeIn 0.3s ease; }
+    .tab-content { flex: 1; overflow-y: auto; overscroll-behavior-y: contain; padding: 10px 20px 90px 20px; display: none; animation: fadeIn 0.3s ease; }
     .tab-content.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -224,10 +232,22 @@
       </div>
     </div>
   </div>
+
+  <div class="modal-overlay" id="alert-modal">
+    <div class="modal-card">
+      <p id="alert-message" style="margin-bottom:20px; line-height:1.5; white-space:pre-line;"></p>
+      <div class="modal-actions" id="alert-actions"></div>
+    </div>
+  </div>
 </div>
 
 <script>
   lucide.createIcons();
+
+  // 길게 누르기 시 나오는 브라우저 기본 메뉴(웹 검색/공유 등) 차단 — 입력 요소는 예외
+  document.addEventListener('contextmenu', e => {
+    if (!['INPUT', 'TEXTAREA'].includes(e.target.tagName)) e.preventDefault();
+  });
 
   // ★ 생성한 Cloudflare 프록시 주소 (반드시 https:// 로 시작해야 합니다)
   const PROXY_URL = "https://drivelog-proxy.jhkang7989.workers.dev";
@@ -238,6 +258,39 @@
     records: [],
     settings: { darkMode: true, haptic: true, addressPref: 'jibun', offsetPercent: 3 }
   };
+
+  function showAlert(message) {
+    return new Promise(resolve => {
+      document.getElementById('alert-message').innerText = message;
+      const actions = document.getElementById('alert-actions');
+      actions.innerHTML = `<button class="modal-btn modal-btn-save" id="alert-ok-btn">확인</button>`;
+      document.getElementById('alert-modal').classList.add('active');
+      document.getElementById('alert-ok-btn').onclick = () => {
+        document.getElementById('alert-modal').classList.remove('active');
+        resolve();
+      };
+    });
+  }
+
+  function showConfirm(message) {
+    return new Promise(resolve => {
+      document.getElementById('alert-message').innerText = message;
+      const actions = document.getElementById('alert-actions');
+      actions.innerHTML = `
+        <button class="modal-btn modal-btn-cancel" id="confirm-cancel-btn">취소</button>
+        <button class="modal-btn modal-btn-save" id="confirm-ok-btn">확인</button>
+      `;
+      document.getElementById('alert-modal').classList.add('active');
+      document.getElementById('confirm-cancel-btn').onclick = () => {
+        document.getElementById('alert-modal').classList.remove('active');
+        resolve(false);
+      };
+      document.getElementById('confirm-ok-btn').onclick = () => {
+        document.getElementById('alert-modal').classList.remove('active');
+        resolve(true);
+      };
+    });
+  }
 
   function loadData() {
     const data = localStorage.getItem('driveRecords_v4');
@@ -273,7 +326,7 @@
             if (waited >= maxWaitMs) {
               clearInterval(waitForGps);
               showLoading(false);
-              alert('GPS 신호를 받지 못했습니다.\n하늘이 잘 보이는 곳에서 다시 태그하거나, 앱에서 직접 "출발/도착" 버튼을 눌러주세요.');
+              showAlert('GPS 신호를 받지 못했습니다.\n하늘이 잘 보이는 곳에서 다시 태그하거나, 앱에서 직접 "출발/도착" 버튼을 눌러주세요.');
             }
           }
         }, checkIntervalMs);
@@ -414,7 +467,7 @@
   /* 운행 로직 */
   async function toggleDrive() {
     triggerHaptic();
-    if (!currentLocation) return alert('GPS 위치를 파악하는 중입니다.');
+    if (!currentLocation) { await showAlert('GPS 위치를 파악하는 중입니다.'); return; }
 
     showLoading(true, "위치 정보를 처리하고 있습니다...");
 
@@ -555,8 +608,9 @@
     });
   }
 
-  function deleteRecord(id) {
-    if (!confirm('이 운행 기록을 삭제하시겠습니까?')) {
+  async function deleteRecord(id) {
+    const ok = await showConfirm('이 운행 기록을 삭제하시겠습니까?');
+    if (!ok) {
       // 취소 시 카드 원위치
       const card = document.querySelector(`.timeline-card[data-id="${id}"]`);
       if (card) card.style.transform = 'translateX(0)';
@@ -596,8 +650,8 @@
     closeEditModal();
   }
 
-  function exportCSV() {
-    if(!appState.records || appState.records.length === 0) return alert('데이터가 없습니다.');
+  async function exportCSV() {
+    if(!appState.records || appState.records.length === 0) { await showAlert('데이터가 없습니다.'); return; }
     let csvContent = "\uFEFF일자,출발시간,도착시간,출발지,도착지,주행거리(km),비고\n";
     const sorted = [...appState.records].sort((a,b) => new Date(a.startTime) - new Date(b.startTime));
     let prevDate = null; let dailySum = 0;
@@ -625,8 +679,9 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function resetData() {
-    if(confirm('정말로 모든 데이터를 삭제하시겠습니까? (복구 불가능)')) { localStorage.removeItem('driveRecords_v4'); window.location.reload(); }
+  async function resetData() {
+    const ok = await showConfirm('정말로 모든 데이터를 삭제하시겠습니까? (복구 불가능)');
+    if (ok) { localStorage.removeItem('driveRecords_v4'); window.location.reload(); }
   }
 
   window.onload = loadData;
