@@ -63,17 +63,17 @@
     .main-toggle-btn.is-running { background: var(--accent-color); color: white; box-shadow: 0 0 30px rgba(240, 113, 59, 0.4); }
     .current-location { text-align: center; margin-top: 35px; font-size: 0.95rem; color: var(--text-muted); min-height: 40px; padding: 0 20px; line-height: 1.5; }
 
-    /* 타임라인 카드 */
-    .history-month-header { font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; }
-    .swipe-wrapper { position: relative; border-radius: var(--border-radius-card); margin-bottom: 15px; overflow: hidden; }
-    .swipe-delete-bg { position: absolute; top: 0; right: 0; bottom: 0; width: 90px; background: #F44336; display: flex; align-items: center; justify-content: center; color: white; }
-    .timeline-card { background: var(--card-color); color: var(--text-card); border-radius: var(--border-radius-card); padding: 20px; position: relative; margin-bottom: 0; touch-action: pan-y; transition: transform 0.25s ease; will-change: transform; }
-    .card-date { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 10px; display: flex; justify-content: space-between; }
-    .card-route { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 0.95rem; }
-    .route-line { flex: 1; height: 2px; background: rgba(0,0,0,0.1); position: relative; }
-    .route-line::after { content: '>'; position: absolute; right: -5px; top: -7px; color: rgba(0,0,0,0.3); font-weight: bold;}
-    .card-meta { display: flex; justify-content: space-between; font-size: 0.85rem; color: #555; margin-top: 15px; align-items: flex-end;}
-    .card-distance { font-size: 1.2rem; font-weight: bold; color: var(--accent-color); }
+    /* 타임라인 카드 (압축형) */
+    .history-month-header { font-size: 1.2rem; font-weight: bold; margin-bottom: 12px; }
+    .swipe-wrapper { position: relative; border-radius: 14px; margin-bottom: 8px; overflow: hidden; }
+    .swipe-delete-bg { position: absolute; top: 0; right: 0; bottom: 0; width: 64px; background: #F44336; display: flex; align-items: center; justify-content: center; color: white; }
+    .timeline-card { background: var(--card-color); color: var(--text-card); border-radius: 14px; padding: 10px 14px; position: relative; margin-bottom: 0; touch-action: pan-y; transition: transform 0.25s ease; will-change: transform; }
+    .card-date { font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; display: flex; justify-content: space-between; font-size: 0.95rem; }
+    .card-row-top { display: flex; justify-content: space-between; align-items: center; }
+    .card-time { font-size: 0.75rem; color: #777; }
+    .card-distance { font-size: 1rem; font-weight: bold; color: var(--accent-color); }
+    .card-route-compact { font-size: 0.78rem; color: #444; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-note-badge { font-size: 0.7rem; color: var(--accent-color); margin-top: 2px; }
 
     /* 설정 영역 */
     .settings-group { background: var(--surface-color); border-radius: var(--border-radius-card); padding: 10px 20px; margin-bottom: 20px; }
@@ -491,8 +491,15 @@
         let eTime = r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '진행중';
 
         html += `<div class="swipe-wrapper" data-id="${r.id}">
-          <div class="swipe-delete-bg" onclick="deleteRecord(${r.id})"><i data-lucide="trash-2"></i></div>
-          <div class="timeline-card" data-id="${r.id}"><div class="card-route"><div style="flex:1; text-align:right;">${sAddr}</div><div class="route-line"></div><div style="flex:1;">${eAddr}</div></div><div class="card-meta"><span>${sTime} ~ ${eTime}</span><div style="text-align:right;"><div class="card-distance">${r.distance.toFixed(1)} km</div>${r.note ? `<div style="font-size:0.75rem; color:var(--accent-color); margin-top:4px;">${r.note}</div>` : ''}</div></div></div>
+          <div class="swipe-delete-bg" onclick="deleteRecord(${r.id})"><i data-lucide="trash-2" style="width:18px; height:18px;"></i></div>
+          <div class="timeline-card" data-id="${r.id}">
+            <div class="card-row-top">
+              <span class="card-time">${sTime} ~ ${eTime}</span>
+              <span class="card-distance">${r.distance.toFixed(1)} km</span>
+            </div>
+            <div class="card-route-compact">${sAddr} → ${eAddr}</div>
+            ${r.note ? `<div class="card-note-badge">${r.note}</div>` : ''}
+          </div>
         </div>`;
       });
       list.innerHTML += html;
@@ -503,7 +510,7 @@
   }
 
   /* 카드 스와이프(좌측으로 밀어 삭제) 처리 */
-  const SWIPE_OPEN_PX = 90;
+  const SWIPE_OPEN_PX = 64;
   function attachSwipeHandlers() {
     document.querySelectorAll('.timeline-card').forEach(card => {
       let startX = 0, currentX = 0, dragging = false, moved = false;
