@@ -51,14 +51,25 @@
     .current-location { text-align: center; margin-top: 35px; font-size: 0.95rem; color: var(--text-muted); min-height: 40px; padding: 0 20px; line-height: 1.5; }
 
     .history-month-header { font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; }
-    .timeline-card { background: var(--card-color); color: var(--text-card); border-radius: var(--border-radius-card); padding: 20px; margin-bottom: 15px; cursor: pointer; transition: transform 0.1s;}
-    .timeline-card:active { transform: scale(0.98); }
-    .card-date { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 10px; display: flex; justify-content: space-between; }
-    .card-route { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 0.95rem; }
-    .route-line { flex: 1; height: 2px; background: rgba(0,0,0,0.1); position: relative; }
-    .route-line::after { content: '>'; position: absolute; right: -5px; top: -7px; color: rgba(0,0,0,0.3); font-weight: bold;}
-    .card-meta { display: flex; justify-content: space-between; font-size: 0.85rem; color: #555; margin-top: 15px; align-items: flex-end;}
-    .card-distance { font-size: 1.2rem; font-weight: bold; color: var(--accent-color); }
+    .card-date { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 10px; display: flex; justify-content: space-between; margin-top: 15px;}
+    
+    /* 스와이프 컨테이너 및 컴팩트 카드 디자인 */
+    .swipe-container { position: relative; overflow: hidden; border-radius: 12px; margin-bottom: 10px; background: #E0E0E0; }
+    [data-theme="dark"] .swipe-container { background: #333; }
+    
+    .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; width: 140px; }
+    .btn-swipe { flex: 1; border: none; color: white; font-weight: bold; font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0; cursor: pointer; }
+    .btn-swipe.edit { background-color: #4CAF50; }
+    .btn-swipe.delete { background-color: #F44336; }
+
+    .timeline-card-inner { background: var(--card-color); color: var(--text-card); padding: 12px 16px; position: relative; z-index: 2; transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); border-radius: 12px; min-height: 100%; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; }
+    .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .card-time { font-size: 0.8rem; color: #888; font-weight: 500; }
+    .card-distance { font-size: 1.15rem; font-weight: 800; color: var(--accent-color); }
+    .card-route-compact { font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; justify-content: space-between; color: var(--text-card); gap: 10px;}
+    .card-route-compact .addr { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-route-compact .arrow { color: #aaa; font-size: 0.75rem; flex: 0 0 auto; }
+    .card-note-compact { font-size: 0.8rem; color: #4CAF50; margin-top: 6px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
     .settings-group { background: var(--surface-color); border-radius: var(--border-radius-card); padding: 10px 20px; margin-bottom: 20px; }
     .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -497,6 +508,14 @@
     document.getElementById('month-distance').innerText = monthDist.toFixed(1);
   }
 
+  /* 주소를 짧게 줄여주는 헬퍼 함수 */
+  function simplifyAddress(addr) {
+    if(!addr) return '위치 없음';
+    let parts = addr.split(' ');
+    if(parts[0] === '대한민국') parts.shift();
+    return parts.slice(0, 3).join(' '); // "서울시 강남구 역삼동" 까지만 표시
+  }
+
   function renderHistory() {
     const list = document.getElementById('history-list');
     list.innerHTML = '';
@@ -516,20 +535,131 @@
       records.reverse().forEach(r => {
         let sTime = new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         let eTime = r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '진행중';
+        
+        let addr1 = simplifyAddress(r.startAddr);
+        let addr2 = simplifyAddress(r.endAddr);
 
         html += `
-        <div class="timeline-card" onclick="openRecordModal(${r.id})">
-          <div style="font-size: 0.85rem; color: #777; margin-bottom: 8px;">${sTime} ~ ${eTime}</div>
-          <div class="card-route"><div style="flex:1;">${r.startAddr || '(주소 없음)'}</div><div class="route-line"></div><div style="flex:1; text-align:right;">${r.endAddr || '(주소 없음)'}</div></div>
-          <div class="card-meta">
-            <div style="color:var(--accent-color); font-size:0.8rem; font-weight:bold;">${r.note || '메모 입력 (터치)'}</div>
-            <div class="card-distance">${r.distance.toFixed(1)} km</div>
+        <div class="swipe-container" id="swipe-${r.id}">
+          <div class="swipe-actions">
+            <button class="btn-swipe edit" onclick="openRecordModal(${r.id})">
+              <i data-lucide="edit-3" style="width:18px; height:18px;"></i>수정
+            </button>
+            <button class="btn-swipe delete" onclick="deleteRecordDirectly(${r.id})">
+              <i data-lucide="trash-2" style="width:18px; height:18px;"></i>삭제
+            </button>
+          </div>
+          <div class="timeline-card-inner" id="card-inner-${r.id}" 
+               ontouchstart="handleTouchStart(event, ${r.id})" 
+               ontouchmove="handleTouchMove(event, ${r.id})" 
+               ontouchend="handleTouchEnd(event, ${r.id})"
+               onclick="handleCardClick(${r.id})">
+            <div class="card-top">
+              <div class="card-time">${sTime} ~ ${eTime}</div>
+              <div class="card-distance">${r.distance.toFixed(1)} <span style="font-size:0.8rem; font-weight:normal;">km</span></div>
+            </div>
+            <div class="card-route-compact">
+              <span class="addr">${addr1}</span>
+              <span class="arrow">➔</span>
+              <span class="addr" style="text-align: right;">${addr2}</span>
+            </div>
+            ${r.note ? `<div class="card-note-compact"><i data-lucide="message-square" style="width:12px;height:12px;"></i>${r.note}</div>` : ''}
           </div>
         </div>`;
       });
       list.innerHTML += html;
     });
+    
+    lucide.createIcons(); // 동적으로 생성된 내역 카드 안의 아이콘 렌더링
   }
+
+  // --- 👆 스와이프 기능 관련 상태 및 함수 👆 ---
+  let touchStartX = 0;
+  let activeSwipeId = null;
+  let isSwiping = false;
+
+  function handleTouchStart(e, id) {
+    touchStartX = e.touches[0].clientX;
+    isSwiping = false;
+    
+    // 다른 열려있는 카드가 있으면 닫기
+    if (activeSwipeId && activeSwipeId !== id) resetSwipe(activeSwipeId);
+  }
+
+  function handleTouchMove(e, id) {
+    if (!touchStartX) return;
+    let currentX = e.touches[0].clientX;
+    let diff = touchStartX - currentX;
+    let cardInner = document.getElementById(`card-inner-${id}`);
+    
+    if (Math.abs(diff) > 10) isSwiping = true;
+
+    if (diff > 0 && diff <= 140) { // 좌측으로 스와이프 (최대 140px)
+      cardInner.style.transform = `translateX(-${diff}px)`;
+    } else if (diff < 0 && activeSwipeId === id) { // 열린 상태에서 우측으로 밀어 닫기
+      let newX = -140 - diff;
+      if (newX > 0) newX = 0;
+      cardInner.style.transform = `translateX(${newX}px)`;
+    }
+  }
+
+  function handleTouchEnd(e, id) {
+    let currentX = e.changedTouches[0].clientX;
+    let diff = touchStartX - currentX;
+    let cardInner = document.getElementById(`card-inner-${id}`);
+    if (!cardInner) return;
+
+    if (diff > 50) { // 50px 이상 밀었으면 스와이프 메뉴 확 열기
+      cardInner.style.transform = `translateX(-140px)`;
+      activeSwipeId = id;
+    } else if (activeSwipeId === id && diff < -50) { // 열린 상태에서 우측으로 밀면 닫기
+      resetSwipe(id);
+    } else if (activeSwipeId === id) { 
+      cardInner.style.transform = `translateX(-140px)`;
+    } else { // 덜 밀었으면 제자리 복귀
+      resetSwipe(id);
+    }
+    
+    touchStartX = 0;
+    setTimeout(() => { isSwiping = false; }, 100); // 클릭 방지용 딜레이
+  }
+
+  function resetSwipe(id) {
+    let cardInner = document.getElementById(`card-inner-${id}`);
+    if(cardInner) cardInner.style.transform = `translateX(0)`;
+    if(activeSwipeId === id) activeSwipeId = null;
+  }
+
+  function handleCardClick(id) {
+    if (isSwiping) return; // 스와이프 중에는 클릭 이벤트 무시
+    if (activeSwipeId && activeSwipeId !== id) {
+      resetSwipe(activeSwipeId); return;
+    }
+    if (activeSwipeId === id) {
+      resetSwipe(id); return;
+    }
+    openRecordModal(id); // 아무것도 안 열려있을 때 탭하면 수정(메모) 모달 오픈
+  }
+
+  async function deleteRecordDirectly(id) {
+    const confirmDel = await showSysModal("이 기록을 완전히 삭제하시겠습니까?", "기록 삭제", true);
+    if (confirmDel) {
+      appState.records = appState.records.filter(x => x.id !== parseInt(id));
+      saveData();
+      renderHistory();
+    } else {
+      resetSwipe(id);
+    }
+  }
+  
+  // 화면 빈 곳 클릭 시 스와이프 열린 것 닫기
+  document.addEventListener('click', (e) => {
+    if (activeSwipeId) {
+      let container = document.getElementById(`swipe-${activeSwipeId}`);
+      if (container && !container.contains(e.target)) resetSwipe(activeSwipeId);
+    }
+  }, true);
+  // ------------------------------------
 
   function openRecordModal(id = null) {
     const modal = document.getElementById('record-modal');
