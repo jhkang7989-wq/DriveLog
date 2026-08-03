@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v1';
+const CACHE_NAME = 'drive-log-v2'; // 캐싱 전략 변경으로 버전 올림 (기존 캐시 정리 유도)
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -19,24 +19,41 @@ self.addEventListener('install', event => {
           )
         );
       })
-      .then(() => self.skipWaiting()) // 새 SW를 바로 활성화 (사용자가 탭을 다 안 닫아도 됨)
+      .then(() => self.skipWaiting())
   );
 });
 
-// 오프라인 작동을 위한 캐시 우선 반환 (Network fallback)
 self.addEventListener('fetch', event => {
-  // API 요청(네이버 지도 프록시 등)은 캐싱하지 않고 네트워크 우선
-  if (event.request.url.includes('naveropenapi') || event.request.url.includes('drivelog-proxy')) {
-    event.respondWith(fetch(event.request));
+  const req = event.request;
+
+  // API/프록시 요청은 캐싱 대상 아님 — 항상 네트워크로 직행
+  if (req.url.includes('naveropenapi') || req.url.includes('drivelog-proxy')) {
+    event.respondWith(fetch(req));
     return;
   }
 
-  // 앱 리소스는 Cache First 전략
+  // HTML(앱 본체) 요청 → Network First
+  // 이유: index.html만 수정하고 sw.js를 안 바꿔서 배포하면, 기존 Cache First 방식은
+  // 브라우저가 SW 업데이트 자체를 감지 못해 옛날 버전을 계속 보여주는 문제가 있었음.
+  // 네트워크를 우선 시도해서 항상 최신 버전을 받아오고, 오프라인일 때만 캐시로 폴백함.
+  const isHtmlRequest = req.mode === 'navigate' || req.url.endsWith('index.html') || req.url.endsWith('/');
+  if (isHtmlRequest) {
+    event.respondWith(
+      fetch(req)
+        .then(res => {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, resClone));
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // 나머지 정적 리소스(아이콘, 매니페스트, CDN 스크립트 등)는 기존처럼 Cache First
+  // (자주 안 바뀌는 자산이라 빠른 로딩 + 오프라인 지원 목적)
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        return response || fetch(event.request);
-      })
+    caches.match(req).then(cached => cached || fetch(req))
   );
 });
 
@@ -51,6 +68,6 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    }).then(() => self.clients.claim()) // 열려있는 탭들도 바로 새 SW가 제어하도록
+    }).then(() => self.clients.claim())
   );
 });
