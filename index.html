@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>DriveLog</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1E1E1E">
@@ -31,7 +31,7 @@
       --text-card: #121212;
     }
 
-    html { overscroll-behavior-y: none; }
+    html { overscroll-behavior-y: none; background-color: var(--bg-color); }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 
     /* 입력 가능한 요소는 텍스트 선택/길게 누르기 정상 동작하도록 예외 처리 */
@@ -57,7 +57,7 @@
     .gps-dot.red { background: #F44336; box-shadow: 0 0 8px #F44336; }
 
     /* 탭 컨텐츠 */
-    .tab-content { flex: 1; overflow-y: auto; overscroll-behavior-y: contain; padding: 10px 20px 90px 20px; display: none; animation: fadeIn 0.3s ease; }
+    .tab-content { flex: 1; overflow-y: auto; overscroll-behavior-y: contain; padding: 10px 20px calc(90px + env(safe-area-inset-bottom)) 20px; display: none; animation: fadeIn 0.3s ease; }
     .tab-content.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -100,7 +100,7 @@
     input:checked + .slider:before { transform: translateX(22px); }
 
     /* 하단 네비게이션 바 */
-    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; height: 70px; background: var(--surface-color); display: flex; justify-content: space-around; align-items: center; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.2); z-index: 100; }
+    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; height: calc(70px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--surface-color); display: flex; justify-content: space-around; align-items: center; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.2); z-index: 100; }
     .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); padding: 8px 16px; border-radius: var(--border-radius-pill); cursor: pointer; transition: all 0.3s; }
     .nav-item.active { background: rgba(240, 113, 59, 0.1); color: var(--accent-color); }
     .nav-item span { font-size: 0.75rem; font-weight: bold; }
@@ -164,7 +164,14 @@
 
   <div id="tab-settings" class="tab-content">
     <h2 style="margin-bottom: 20px;">설정 및 관리</h2>
-    
+
+    <div class="settings-group">
+      <div class="setting-item">
+        <div class="setting-label"><i data-lucide="refresh-cw"></i> 앱 새로고침</div>
+        <button class="setting-action" onclick="forceRefreshApp()">새로고침</button>
+      </div>
+    </div>
+
     <div class="settings-group">
       <div class="setting-item">
         <div class="setting-label"><i data-lucide="moon"></i> 다크 모드</div>
@@ -199,6 +206,15 @@
       <div class="setting-item">
         <div class="setting-label"><i data-lucide="file-spreadsheet"></i> 엑셀(CSV) 다운로드</div>
         <button class="setting-action" onclick="exportCSV()">다운로드</button>
+      </div>
+      <div class="setting-item">
+        <div class="setting-label"><i data-lucide="download-cloud"></i> 데이터 백업 (JSON)</div>
+        <button class="setting-action" onclick="exportBackup()">백업</button>
+      </div>
+      <div class="setting-item">
+        <div class="setting-label"><i data-lucide="upload-cloud"></i> 데이터 복원</div>
+        <button class="setting-action" onclick="document.getElementById('restore-file-input').click()">복원</button>
+        <input type="file" id="restore-file-input" accept="application/json" style="display:none;" onchange="handleRestoreFile(event)">
       </div>
       <div class="setting-item">
         <div class="setting-label" style="color:#F44336;"><i data-lucide="trash-2"></i> 데이터 초기화</div>
@@ -397,6 +413,11 @@
       // 진짜 목표 주소를 프록시 서버에 ?target= 형태로 넘김
       const targetUrl = encodeURIComponent(`https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&orders=addr,roadaddr&output=json`);
       const response = await fetch(`${PROXY_URL}/?target=${targetUrl}`);
+
+      if (!response.ok) {
+        console.warn(`주소 변환 API 실패 (status ${response.status})`);
+      }
+
       const data = await response.json();
       
       let road = "", jibun = "";
@@ -452,6 +473,12 @@
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R * c; 
   }
 
+  // 한국시간(KST, UTC+9) 기준 날짜 문자열(YYYY-MM-DD) 반환
+  // — 기기의 시간대 설정과 무관하게 항상 한국시간 기준으로 고정 (toISOString()은 UTC라서 새벽 시간대에 날짜가 하루 밀리는 문제가 있었음)
+  function getKSTDateString(date = new Date()) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  }
+
   async function fetchAndDisplayAddress(lat, lng) {
     const addr = await getAddressesFromCoords(lat, lng);
     const pref = appState.settings.addressPref;
@@ -483,7 +510,7 @@
       let finalDistance = Math.round((distResult.distanceKm * (1 + (appState.settings.offsetPercent / 100))) * 10) / 10;
 
       if (!appState.records) appState.records = [];
-      appState.records.push({ id: trip.id, date: new Date().toISOString().split('T')[0], startTime: trip.startTime, endTime: new Date().toISOString(), startAddrRoad: trip.startAddrRoad, startAddrJibun: trip.startAddrJibun, endAddrRoad: endAddr.road, endAddrJibun: endAddr.jibun, distance: finalDistance, note: distResult.estimated ? "⚠️ 거리 추정치(직선거리 기반)" : "" });
+      appState.records.push({ id: trip.id, date: getKSTDateString(), startTime: trip.startTime, endTime: new Date().toISOString(), startAddrRoad: trip.startAddrRoad, startAddrJibun: trip.startAddrJibun, endAddrRoad: endAddr.road, endAddrJibun: endAddr.jibun, distance: finalDistance, note: distResult.estimated ? "⚠️ 거리 추정치(직선거리 기반)" : "" });
       
       appState.isRunning = false;
       appState.currentTrip = null;
@@ -507,7 +534,7 @@
       btn.classList.remove('is-running'); btnText.innerText = '출발'; btnIcon.setAttribute('data-lucide', 'play'); lucide.createIcons();
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getKSTDateString();
     const currentMonth = today.substring(0, 7);
     let todayDist = 0, monthDist = 0;
 
@@ -540,8 +567,8 @@
         if(!sAddr || sAddr.includes('API오류')) sAddr = '(주소 정보 없음)';
         if(!eAddr || eAddr.includes('API오류')) eAddr = '(주소 정보 없음)';
 
-        let sTime = new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        let eTime = r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '진행중';
+        let sTime = new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'});
+        let eTime = r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'}) : '진행중';
 
         html += `<div class="swipe-wrapper" data-id="${r.id}">
           <div class="swipe-delete-bg" onclick="deleteRecord(${r.id})"><i data-lucide="trash-2" style="width:18px; height:18px;"></i></div>
@@ -662,7 +689,7 @@
       prevDate = r.date; dailySum += r.distance;
       let sAddr = appState.settings.addressPref === 'road' ? (r.startAddrRoad || r.startAddrJibun) : (r.startAddrJibun || r.startAddrRoad);
       let eAddr = appState.settings.addressPref === 'road' ? (r.endAddrRoad || r.endAddrJibun) : (r.endAddrJibun || r.endAddrRoad);
-      csvContent += `${r.date},${new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})},${r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''},${escape(sAddr)},${escape(eAddr)},${r.distance.toFixed(1)},${escape(r.note)}\n`;
+      csvContent += `${r.date},${new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'})},${r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'}) : ''},${escape(sAddr)},${escape(eAddr)},${r.distance.toFixed(1)},${escape(r.note)}\n`;
     });
     if(prevDate) csvContent += `${prevDate} 총합,,,,,${dailySum.toFixed(1)}\n`;
 
@@ -672,7 +699,7 @@
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `운행기록_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `운행기록_${getKSTDateString()}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -682,6 +709,61 @@
   async function resetData() {
     const ok = await showConfirm('정말로 모든 데이터를 삭제하시겠습니까? (복구 불가능)');
     if (ok) { localStorage.removeItem('driveRecords_v4'); window.location.reload(); }
+  }
+
+  function exportBackup() {
+    const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `운행기록_백업_${getKSTDateString()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function handleRestoreFile(event) {
+    const file = event.target.files[0];
+    event.target.value = ''; // 같은 파일을 다시 선택할 수 있도록 초기화
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+
+      if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.records)) {
+        await showAlert('올바른 백업 파일이 아닙니다.');
+        return;
+      }
+
+      const currentCount = (appState.records || []).length;
+      const ok = await showConfirm(`백업 파일을 불러오면 현재 데이터(${currentCount}건)는 사라지고\n백업 데이터(${parsed.records.length}건)로 교체됩니다.\n계속하시겠습니까?`);
+      if (!ok) return;
+
+      localStorage.setItem('driveRecords_v4', JSON.stringify(parsed));
+      window.location.reload();
+    } catch (e) {
+      console.error('백업 복원 오류:', e);
+      await showAlert('파일을 읽는 중 오류가 발생했습니다.\n올바른 JSON 백업 파일인지 확인해주세요.');
+    }
+  }
+
+  async function forceRefreshApp() {
+    showLoading(true, "앱을 새로고침하는 중...");
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+    } catch(e) {
+      console.error('새로고침 처리 중 오류:', e);
+    }
+    window.location.reload();
   }
 
   window.onload = loadData;
