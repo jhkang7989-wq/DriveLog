@@ -395,7 +395,7 @@
     
     try {
       // 진짜 목표 주소를 프록시 서버에 ?target= 형태로 넘김
-      const targetUrl = encodeURIComponent(`https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&output=json`);
+      const targetUrl = encodeURIComponent(`https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&orders=addr,roadaddr&output=json`);
       const response = await fetch(`${PROXY_URL}/?target=${targetUrl}`);
       const data = await response.json();
       
