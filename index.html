@@ -943,6 +943,11 @@
 
   async function downloadCSV() {
     if(!appState.records || appState.records.length === 0) { await showAlert('데이터가 없습니다.'); return; }
+
+    const modeLabel = historyViewMode === 'summary' ? '일지용 요약' : '상세';
+    const ok = await showConfirm(`"${modeLabel}" 보기 기준으로 CSV 파일을 다운로드하시겠습니까?`);
+    if (!ok) return;
+
     const { blob, filename } = buildCSVBlob();
 
     // data URI 대신 Blob 방식 사용 — iOS 홈 화면(standalone) PWA에서 data URI 다운로드가
