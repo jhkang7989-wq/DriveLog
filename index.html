@@ -72,11 +72,23 @@
     .current-location { text-align: center; margin-top: 35px; font-size: 0.95rem; color: var(--text-muted); min-height: 40px; padding: 0 20px; line-height: 1.5; }
 
     /* 타임라인 카드 (압축형) */
-    .history-month-header { font-size: 1.2rem; font-weight: bold; margin-bottom: 12px; }
+    .history-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .history-month-header { font-size: 1.2rem; font-weight: bold; }
+    .add-record-btn { background: var(--accent-color); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .add-record-btn i { width: 18px; height: 18px; }
+    .view-toggle-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .view-toggle-btn { flex: 1; padding: 8px; border: none; border-radius: 10px; background: var(--surface-color); color: var(--text-muted); font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .view-toggle-btn.active { background: var(--accent-color); color: white; }
+    .card-date { font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; cursor: pointer; }
+    .card-date .date-chevron { transition: transform 0.25s ease; width: 16px; height: 16px; color: var(--text-muted); }
+    .card-date.collapsed .date-chevron { transform: rotate(-90deg); }
+    .date-group-body { overflow: hidden; }
+    .summary-card { background: var(--card-color); color: var(--text-card); border-radius: 14px; padding: 10px 14px; margin-bottom: 8px; }
+    .summary-route { font-size: 0.85rem; font-weight: 600; }
+    .summary-distance { font-size: 0.95rem; font-weight: bold; color: var(--accent-color); float: right; }
     .swipe-wrapper { position: relative; border-radius: 14px; margin-bottom: 8px; overflow: hidden; }
     .swipe-delete-bg { position: absolute; top: 0; right: 0; bottom: 0; width: 64px; background: #F44336; display: flex; align-items: center; justify-content: center; color: white; }
-    .timeline-card { background: var(--card-color); color: var(--text-card); border-radius: 14px; padding: 10px 14px; position: relative; margin-bottom: 0; touch-action: pan-y; transition: transform 0.25s ease; will-change: transform; }
-    .card-date { font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; display: flex; justify-content: space-between; font-size: 0.95rem; }
+    .timeline-card { background: var(--card-color); color: var(--text-card); border-top-left-radius: 14px; border-bottom-left-radius: 14px; border-top-right-radius: 0; border-bottom-right-radius: 0; padding: 10px 14px; position: relative; margin-bottom: 0; touch-action: pan-y; transition: transform 0.25s ease; will-change: transform; }
     .card-row-top { display: flex; justify-content: space-between; align-items: center; }
     .card-time { font-size: 0.75rem; color: #777; }
     .card-distance { font-size: 1rem; font-weight: bold; color: var(--accent-color); }
@@ -133,7 +145,7 @@
 <div id="app">
   <header class="global-header">
     <div class="brand">
-      <img src="header_logo.png" alt="DriveLog Logo" class="brand-logo" onerror="this.style.display='none'">
+      <img id="header-logo-img" src="header_logo.png" alt="DriveLog Logo" class="brand-logo" onerror="this.style.display='none'">
     </div>
     <div class="gps-indicator">
       <div id="gps-dot" class="gps-dot red"></div>
@@ -162,7 +174,14 @@
   </div>
 
   <div id="tab-history" class="tab-content">
-    <div class="history-month-header" id="history-month-title">전체 내역</div>
+    <div class="history-header-row">
+      <div class="history-month-header" id="history-month-title">전체 내역</div>
+      <button class="add-record-btn" onclick="openAddModal()"><i data-lucide="plus"></i></button>
+    </div>
+    <div class="view-toggle-row">
+      <button class="view-toggle-btn active" id="btn-view-detail" onclick="setHistoryViewMode('detail')">상세보기</button>
+      <button class="view-toggle-btn" id="btn-view-summary" onclick="setHistoryViewMode('summary')">일지용 요약</button>
+    </div>
     <div id="history-list"></div>
   </div>
 
@@ -208,9 +227,10 @@
 
     <div class="settings-group">
       <div class="setting-item">
-        <div class="setting-label"><i data-lucide="file-spreadsheet"></i> 엑셀(CSV) 다운로드</div>
-        <button class="setting-action" onclick="exportCSV()">다운로드</button>
+        <div class="setting-label"><i data-lucide="file-spreadsheet"></i> 엑셀(CSV) 공유/저장</div>
+        <button class="setting-action" onclick="exportCSV()">공유/저장</button>
       </div>
+      <div style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px;">현재 <span id="csv-mode-label">상세</span> 보기 기준으로 내보내집니다 (내역 탭에서 전환 가능)</div>
       <div class="setting-item">
         <div class="setting-label"><i data-lucide="download-cloud"></i> 데이터 백업 (JSON)</div>
         <button class="setting-action" onclick="exportBackup()">백업</button>
@@ -249,6 +269,44 @@
       <div class="modal-actions">
         <button class="modal-btn modal-btn-cancel" onclick="closeEditModal()">취소</button>
         <button class="modal-btn modal-btn-save" onclick="saveEditModal()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="add-modal">
+    <div class="modal-card">
+      <h3 style="margin-bottom:20px;">운행 기록 수동 추가</h3>
+      <div class="modal-field">
+        <label>날짜</label>
+        <input type="date" id="add-date">
+      </div>
+      <div class="modal-field">
+        <label>출발 시간</label>
+        <input type="time" id="add-start-time">
+      </div>
+      <div class="modal-field">
+        <label>도착 시간</label>
+        <input type="time" id="add-end-time">
+      </div>
+      <div class="modal-field">
+        <label>출발지</label>
+        <input type="text" id="add-start-addr" placeholder="예: 강원특별자치도 원주시 ...">
+      </div>
+      <div class="modal-field">
+        <label>도착지</label>
+        <input type="text" id="add-end-addr" placeholder="예: 강원특별자치도 강릉시 ...">
+      </div>
+      <div class="modal-field">
+        <label>주행거리 (km)</label>
+        <input type="number" id="add-distance" step="0.1" inputmode="decimal">
+      </div>
+      <div class="modal-field">
+        <label>비고 / 메모 (선택)</label>
+        <textarea id="add-note" rows="2" placeholder="선택 입력"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" onclick="closeAddModal()">취소</button>
+        <button class="modal-btn modal-btn-save" onclick="saveAddModal()">추가</button>
       </div>
     </div>
   </div>
@@ -369,7 +427,10 @@
 
   function toggleDarkMode(init = false) {
     if(!init) saveSettings();
-    document.body.setAttribute('data-theme', appState.settings.darkMode ? 'dark' : 'light');
+    const isDark = appState.settings.darkMode;
+    document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    const logoImg = document.getElementById('header-logo-img');
+    if (logoImg) logoImg.src = isDark ? 'header_logo.png' : 'header_logo_light.png';
   }
 
   /* GPS 제어 */
@@ -551,6 +612,53 @@
   }
 
   /* 타임라인 및 엑셀 다운로드 */
+  let expandedDates = new Set();
+  let historyViewMode = 'detail';
+
+  function setHistoryViewMode(mode) {
+    historyViewMode = mode;
+    document.getElementById('btn-view-detail').classList.toggle('active', mode === 'detail');
+    document.getElementById('btn-view-summary').classList.toggle('active', mode === 'summary');
+    const csvLabel = document.getElementById('csv-mode-label');
+    if (csvLabel) csvLabel.innerText = mode === 'summary' ? '요약' : '상세';
+    renderHistory();
+  }
+
+  function toggleDateGroup(date) {
+    if (expandedDates.has(date)) expandedDates.delete(date); else expandedDates.add(date);
+    renderHistory();
+  }
+
+  // 주소 문자열에서 지역명(시/군/구 등)만 추출 — "강원특별자치도 강릉시 ..." → "강릉시"
+  function extractRegion(addr) {
+    if (!addr || addr.includes('API오류') || addr.includes('주소 정보 없음')) return null;
+    const parts = addr.trim().split(/\s+/);
+    return parts.length >= 2 ? parts[1] : (parts[0] || null);
+  }
+
+  // 도착지 지역이 바뀔 때까지 연속된 구간을 하나로 합산 (일지용 요약 보기 전용)
+  // records는 반드시 시간순(오름차순)으로 전달해야 함
+  function buildSummaryGroups(records) {
+    const groups = [];
+    records.forEach(r => {
+      const sAddr = appState.settings.addressPref === 'road' ? (r.startAddrRoad || r.startAddrJibun) : (r.startAddrJibun || r.startAddrRoad);
+      const eAddr = appState.settings.addressPref === 'road' ? (r.endAddrRoad || r.endAddrJibun) : (r.endAddrJibun || r.endAddrRoad);
+      const destRegion = extractRegion(eAddr);
+
+      const last = groups[groups.length - 1];
+      if (last && destRegion && last.destRegion === destRegion) {
+        last.distance += r.distance;
+      } else {
+        groups.push({
+          startAddr: sAddr || '(주소 정보 없음)',
+          destRegion: destRegion || (eAddr || '(주소 정보 없음)'),
+          distance: r.distance
+        });
+      }
+    });
+    return groups;
+  }
+
   function renderHistory() {
     const list = document.getElementById('history-list');
     list.innerHTML = '';
@@ -558,37 +666,61 @@
 
     const grouped = appState.records.reduce((acc, obj) => { if (!acc[obj.date]) acc[obj.date] = []; acc[obj.date].push(obj); return acc; }, {});
     const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
-    
+
+    // 최초 렌더링 시 가장 최근 날짜만 기본으로 펼쳐둠
+    if (expandedDates.size === 0 && sortedDates.length > 0) {
+      expandedDates.add(sortedDates[0]);
+    }
+
+    let html = '';
     sortedDates.forEach(date => {
-      const records = grouped[date];
-      const dailyTotal = records.reduce((sum, r) => sum + r.distance, 0).toFixed(1);
-      let html = `<div class="card-date">${date} <span>총 ${dailyTotal} km</span></div>`;
-      
-      records.reverse().forEach(r => {
-        let sAddr = appState.settings.addressPref === 'road' ? (r.startAddrRoad || r.startAddrJibun) : (r.startAddrJibun || r.startAddrRoad);
-        let eAddr = appState.settings.addressPref === 'road' ? (r.endAddrRoad || r.endAddrJibun) : (r.endAddrJibun || r.endAddrRoad);
-        
-        if(!sAddr || sAddr.includes('API오류')) sAddr = '(주소 정보 없음)';
-        if(!eAddr || eAddr.includes('API오류')) eAddr = '(주소 정보 없음)';
+      const chronological = grouped[date]; // 원본 순서 = 시간순(오름차순)
+      const dailyTotal = chronological.reduce((sum, r) => sum + r.distance, 0).toFixed(1);
+      const isExpanded = expandedDates.has(date);
 
-        let sTime = new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'});
-        let eTime = r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'}) : '진행중';
+      html += `<div class="card-date ${isExpanded ? '' : 'collapsed'}" onclick="toggleDateGroup('${date}')">
+        <span>${date} <span style="font-weight:normal; color:var(--text-muted); font-size:0.85rem;">총 ${dailyTotal} km</span></span>
+        <i data-lucide="chevron-down" class="date-chevron"></i>
+      </div>`;
 
-        html += `<div class="swipe-wrapper" data-id="${r.id}">
-          <div class="swipe-delete-bg" onclick="deleteRecord(${r.id})"><i data-lucide="trash-2" style="width:18px; height:18px;"></i></div>
-          <div class="timeline-card" data-id="${r.id}">
-            <div class="card-row-top">
-              <span class="card-time">${sTime} ~ ${eTime}</span>
-              <span class="card-distance">${r.distance.toFixed(1)} km</span>
+      html += `<div class="date-group-body" style="display:${isExpanded ? 'block' : 'none'};">`;
+
+      if (historyViewMode === 'summary') {
+        buildSummaryGroups(chronological).slice().reverse().forEach(g => {
+          html += `<div class="summary-card">
+            <span class="summary-distance">${g.distance.toFixed(1)} km</span>
+            <div class="summary-route">${g.startAddr} → ${g.destRegion}</div>
+          </div>`;
+        });
+      } else {
+        chronological.slice().reverse().forEach(r => {
+          let sAddr = appState.settings.addressPref === 'road' ? (r.startAddrRoad || r.startAddrJibun) : (r.startAddrJibun || r.startAddrRoad);
+          let eAddr = appState.settings.addressPref === 'road' ? (r.endAddrRoad || r.endAddrJibun) : (r.endAddrJibun || r.endAddrRoad);
+
+          if(!sAddr || sAddr.includes('API오류')) sAddr = '(주소 정보 없음)';
+          if(!eAddr || eAddr.includes('API오류')) eAddr = '(주소 정보 없음)';
+
+          let sTime = new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'});
+          let eTime = r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'}) : '진행중';
+
+          html += `<div class="swipe-wrapper" data-id="${r.id}">
+            <div class="swipe-delete-bg" onclick="deleteRecord(${r.id})"><i data-lucide="trash-2" style="width:18px; height:18px;"></i></div>
+            <div class="timeline-card" data-id="${r.id}">
+              <div class="card-row-top">
+                <span class="card-time">${sTime} ~ ${eTime}</span>
+                <span class="card-distance">${r.distance.toFixed(1)} km</span>
+              </div>
+              <div class="card-route-compact">${sAddr} → ${eAddr}</div>
+              ${r.note ? `<div class="card-note-badge">${r.note}</div>` : ''}
             </div>
-            <div class="card-route-compact">${sAddr} → ${eAddr}</div>
-            ${r.note ? `<div class="card-note-badge">${r.note}</div>` : ''}
-          </div>
-        </div>`;
-      });
-      list.innerHTML += html;
+          </div>`;
+        });
+      }
+
+      html += `</div>`;
     });
 
+    list.innerHTML = html;
     lucide.createIcons();
     attachSwipeHandlers();
   }
@@ -652,6 +784,59 @@
     renderHistory();
   }
 
+  function openAddModal() {
+    document.getElementById('add-date').value = getKSTDateString();
+    const now = new Date();
+    const kstNow = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false }).format(now);
+    document.getElementById('add-start-time').value = kstNow;
+    document.getElementById('add-end-time').value = kstNow;
+    document.getElementById('add-start-addr').value = '';
+    document.getElementById('add-end-addr').value = '';
+    document.getElementById('add-distance').value = '';
+    document.getElementById('add-note').value = '';
+    document.getElementById('add-modal').classList.add('active');
+  }
+
+  function closeAddModal() {
+    document.getElementById('add-modal').classList.remove('active');
+  }
+
+  async function saveAddModal() {
+    const dateVal = document.getElementById('add-date').value;
+    const startTimeVal = document.getElementById('add-start-time').value;
+    const endTimeVal = document.getElementById('add-end-time').value;
+    const startAddr = document.getElementById('add-start-addr').value.trim();
+    const endAddr = document.getElementById('add-end-addr').value.trim();
+    const distanceVal = parseFloat(document.getElementById('add-distance').value);
+
+    if (!dateVal || !startTimeVal || !endTimeVal || isNaN(distanceVal)) {
+      await showAlert('날짜, 출발/도착 시간, 거리는 필수 입력입니다.');
+      return;
+    }
+
+    // 입력값을 한국시간(KST, UTC+9) 기준으로 명시적으로 해석 — 기기 시간대 설정과 무관하게 항상 정확하도록
+    const startTimeISO = new Date(`${dateVal}T${startTimeVal}:00+09:00`).toISOString();
+    const endTimeISO = new Date(`${dateVal}T${endTimeVal}:00+09:00`).toISOString();
+
+    if (!appState.records) appState.records = [];
+    appState.records.push({
+      id: Date.now(),
+      date: dateVal,
+      startTime: startTimeISO,
+      endTime: endTimeISO,
+      startAddrRoad: startAddr, startAddrJibun: startAddr,
+      endAddrRoad: endAddr, endAddrJibun: endAddr,
+      distance: distanceVal,
+      note: document.getElementById('add-note').value.trim() || '✏️ 수동 입력'
+    });
+
+    saveData();
+    expandedDates.add(dateVal); // 방금 추가한 날짜는 펼쳐서 바로 보이게
+    renderHistory();
+    updateMainUI();
+    closeAddModal();
+  }
+
   let editingRecordId = null;
 
   function editRecord(id) {
@@ -683,27 +868,65 @@
 
   async function exportCSV() {
     if(!appState.records || appState.records.length === 0) { await showAlert('데이터가 없습니다.'); return; }
-    let csvContent = "\uFEFF일자,출발시간,도착시간,출발지,도착지,주행거리(km),비고\n";
-    const sorted = [...appState.records].sort((a,b) => new Date(a.startTime) - new Date(b.startTime));
-    let prevDate = null; let dailySum = 0;
     const escape = str => `"${String(str || '').replace(/"/g, '""')}"`;
 
-    sorted.forEach(r => {
-      if(prevDate && prevDate !== r.date) { csvContent += `${prevDate} 총합,,,,,${dailySum.toFixed(1)}\n`; dailySum = 0; }
-      prevDate = r.date; dailySum += r.distance;
-      let sAddr = appState.settings.addressPref === 'road' ? (r.startAddrRoad || r.startAddrJibun) : (r.startAddrJibun || r.startAddrRoad);
-      let eAddr = appState.settings.addressPref === 'road' ? (r.endAddrRoad || r.endAddrJibun) : (r.endAddrJibun || r.endAddrRoad);
-      csvContent += `${r.date},${new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'})},${r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'}) : ''},${escape(sAddr)},${escape(eAddr)},${r.distance.toFixed(1)},${escape(r.note)}\n`;
-    });
-    if(prevDate) csvContent += `${prevDate} 총합,,,,,${dailySum.toFixed(1)}\n`;
+    const grouped = appState.records.reduce((acc, obj) => { if (!acc[obj.date]) acc[obj.date] = []; acc[obj.date].push(obj); return acc; }, {});
+    const sortedDates = Object.keys(grouped).sort((a, b) => new Date(a) - new Date(b)); // 오래된 날짜부터
+
+    let csvContent;
+
+    if (historyViewMode === 'summary') {
+      // 화면의 "일지용 요약" 보기와 동일하게 지역 합산해서 출력
+      csvContent = "\uFEFF일자,출발지,도착지,주행거리(km)\n";
+      sortedDates.forEach(date => {
+        const groups = buildSummaryGroups(grouped[date]);
+        let dailySum = 0;
+        groups.forEach(g => {
+          dailySum += g.distance;
+          csvContent += `${date},${escape(g.startAddr)},${escape(g.destRegion)},${g.distance.toFixed(1)}\n`;
+        });
+        csvContent += `${date} 총합,,,${dailySum.toFixed(1)}\n`;
+      });
+    } else {
+      // 기존 상세보기 형식 그대로
+      csvContent = "\uFEFF일자,출발시간,도착시간,출발지,도착지,주행거리(km),비고\n";
+      sortedDates.forEach(date => {
+        const records = [...grouped[date]].sort((a,b) => new Date(a.startTime) - new Date(b.startTime));
+        let dailySum = 0;
+        records.forEach(r => {
+          dailySum += r.distance;
+          let sAddr = appState.settings.addressPref === 'road' ? (r.startAddrRoad || r.startAddrJibun) : (r.startAddrJibun || r.startAddrRoad);
+          let eAddr = appState.settings.addressPref === 'road' ? (r.endAddrRoad || r.endAddrJibun) : (r.endAddrJibun || r.endAddrRoad);
+          csvContent += `${r.date},${new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'})},${r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'}) : ''},${escape(sAddr)},${escape(eAddr)},${r.distance.toFixed(1)},${escape(r.note)}\n`;
+        });
+        csvContent += `${date} 총합,,,,,${dailySum.toFixed(1)}\n`;
+      });
+    }
+
+    const modeLabel = historyViewMode === 'summary' ? '요약' : '상세';
+    const filename = `운행기록_${modeLabel}_${getKSTDateString()}.csv`;
 
     // data URI 대신 Blob 방식 사용 — iOS 홈 화면(standalone) PWA에서 data URI 다운로드가
     // 씹히거나 새 탭에 텍스트로만 열리는 문제가 있어서, 호환성이 더 나은 Blob+ObjectURL로 변경
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    // 폰에서는 공유 시트(메일/카톡 등)로 바로 보낼 수 있도록 Web Share API 우선 시도
+    try {
+      const file = new File([blob], filename, { type: 'text/csv' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: '운행기록 CSV', text: '운행기록 CSV 파일입니다.' });
+        return;
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return; // 사용자가 공유 취소 → 굳이 다운로드로 안 넘어감
+      console.warn('공유 실패, 다운로드로 대체합니다:', e);
+    }
+
+    // 공유 API 미지원(주로 데스크톱 브라우저) → 기존처럼 다운로드로 폴백
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `운행기록_${getKSTDateString()}.csv`;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -715,12 +938,33 @@
     if (ok) { localStorage.removeItem('driveRecords_v4'); window.location.reload(); }
   }
 
-  function exportBackup() {
-    const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });
+  async function exportBackup() {
+    const jsonContent = JSON.stringify(appState, null, 2);
+    const fixedFilename = '운행기록_백업.json'; // 날짜 안 붙임 — 매번 같은 이름으로 저장되게
+
+    // 지원되는 브라우저(주로 PC 크롬 계열)는 저장 위치를 직접 골라 진짜 덮어쓰기 가능
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: fixedFilename,
+          types: [{ description: 'JSON 백업 파일', accept: { 'application/json': ['.json'] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(jsonContent);
+        await writable.close();
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return; // 사용자가 저장 취소
+        console.warn('파일 저장 API 실패, 일반 다운로드로 대체:', e);
+      }
+    }
+
+    // 미지원 환경(대부분 모바일) → 고정 파일명으로 일반 다운로드
+    const blob = new Blob([jsonContent], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `운행기록_백업_${getKSTDateString()}.json`;
+    link.download = fixedFilename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
