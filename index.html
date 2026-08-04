@@ -83,9 +83,9 @@
     .card-date .date-chevron { transition: transform 0.25s ease; width: 16px; height: 16px; color: var(--text-muted); }
     .card-date.collapsed .date-chevron { transform: rotate(-90deg); }
     .date-group-body { overflow: hidden; }
-    .summary-card { background: var(--card-color); color: var(--text-card); border-radius: 14px; padding: 10px 14px; margin-bottom: 8px; }
-    .summary-route { font-size: 0.85rem; font-weight: 600; }
-    .summary-distance { font-size: 0.95rem; font-weight: bold; color: var(--accent-color); float: right; }
+    .summary-card { background: var(--card-color); color: var(--text-card); border-radius: 14px; padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .summary-route { font-size: 0.85rem; font-weight: 600; flex: 1; line-height: 1.4; }
+    .summary-distance { font-size: 0.95rem; font-weight: bold; color: var(--accent-color); white-space: nowrap; flex-shrink: 0; }
     .swipe-wrapper { position: relative; border-radius: 14px; margin-bottom: 8px; overflow: hidden; }
     .swipe-delete-bg { position: absolute; top: 0; right: 0; bottom: 0; width: 64px; background: #F44336; display: flex; align-items: center; justify-content: center; color: white; }
     .timeline-card { background: var(--card-color); color: var(--text-card); border-top-left-radius: 14px; border-bottom-left-radius: 14px; border-top-right-radius: 0; border-bottom-right-radius: 0; padding: 10px 14px; position: relative; margin-bottom: 0; touch-action: pan-y; transition: transform 0.25s ease; will-change: transform; }
@@ -636,6 +636,14 @@
     return parts.length >= 2 ? parts[1] : (parts[0] || null);
   }
 
+  // 화면 카드 표시 전용 — 도로명/번지를 생략하고 시/도 + 시/군/구 + 읍/면/동까지만 보여줌
+  // (원본 전체 주소는 데이터에 그대로 남아있고, CSV/백업엔 영향 없음 — 오직 화면 표시만 축약)
+  function shortenAddress(addr) {
+    if (!addr || addr.includes('API오류') || addr.includes('주소 정보 없음')) return addr;
+    const parts = addr.trim().split(/\s+/);
+    return parts.slice(0, 3).join(' ');
+  }
+
   // 도착지 지역이 바뀔 때까지 연속된 구간을 하나로 합산 (일지용 요약 보기 전용)
   // records는 반드시 시간순(오름차순)으로 전달해야 함
   function buildSummaryGroups(records) {
@@ -688,8 +696,8 @@
       if (historyViewMode === 'summary') {
         buildSummaryGroups(chronological).slice().reverse().forEach(g => {
           html += `<div class="summary-card">
+            <div class="summary-route">${shortenAddress(g.startAddr)} → ${g.destRegion}</div>
             <span class="summary-distance">${g.distance.toFixed(1)} km</span>
-            <div class="summary-route">${g.startAddr} → ${g.destRegion}</div>
           </div>`;
         });
       } else {
@@ -710,7 +718,7 @@
                 <span class="card-time">${sTime} ~ ${eTime}</span>
                 <span class="card-distance">${r.distance.toFixed(1)} km</span>
               </div>
-              <div class="card-route-compact">${sAddr} → ${eAddr}</div>
+              <div class="card-route-compact">${shortenAddress(sAddr)} → ${shortenAddress(eAddr)}</div>
               ${r.note ? `<div class="card-note-badge">${r.note}</div>` : ''}
             </div>
           </div>`;
