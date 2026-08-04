@@ -228,8 +228,11 @@
 
     <div class="settings-group">
       <div class="setting-item">
-        <div class="setting-label"><i data-lucide="file-spreadsheet"></i> 엑셀(CSV) 공유/저장</div>
-        <button class="setting-action" onclick="exportCSV()">공유/저장</button>
+        <div class="setting-label"><i data-lucide="file-spreadsheet"></i> 엑셀(CSV)</div>
+        <div style="display:flex; gap:6px;">
+          <button class="setting-action" onclick="downloadCSV()">다운로드</button>
+          <button class="setting-action" onclick="shareCSV()">공유</button>
+        </div>
       </div>
       <div style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px;">현재 <span id="csv-mode-label">상세</span> 보기 기준으로 내보내집니다 (내역 탭에서 전환 가능)</div>
       <div class="setting-item">
@@ -899,8 +902,7 @@
     closeEditModal();
   }
 
-  async function exportCSV() {
-    if(!appState.records || appState.records.length === 0) { await showAlert('데이터가 없습니다.'); return; }
+  function buildCSVBlob() {
     const escape = str => `"${String(str || '').replace(/"/g, '""')}"`;
 
     const grouped = appState.records.reduce((acc, obj) => { if (!acc[obj.date]) acc[obj.date] = []; acc[obj.date].push(obj); return acc; }, {});
@@ -938,24 +940,16 @@
 
     const modeLabel = historyViewMode === 'summary' ? '요약' : '상세';
     const filename = `운행기록_${modeLabel}_${getKSTDateString()}.csv`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    return { blob, filename };
+  }
+
+  async function downloadCSV() {
+    if(!appState.records || appState.records.length === 0) { await showAlert('데이터가 없습니다.'); return; }
+    const { blob, filename } = buildCSVBlob();
 
     // data URI 대신 Blob 방식 사용 — iOS 홈 화면(standalone) PWA에서 data URI 다운로드가
     // 씹히거나 새 탭에 텍스트로만 열리는 문제가 있어서, 호환성이 더 나은 Blob+ObjectURL로 변경
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-
-    // 폰에서는 공유 시트(메일/카톡 등)로 바로 보낼 수 있도록 Web Share API 우선 시도
-    try {
-      const file = new File([blob], filename, { type: 'text/csv' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: '운행기록 CSV', text: '운행기록 CSV 파일입니다.' });
-        return;
-      }
-    } catch (e) {
-      if (e.name === 'AbortError') return; // 사용자가 공유 취소 → 굳이 다운로드로 안 넘어감
-      console.warn('공유 실패, 다운로드로 대체합니다:', e);
-    }
-
-    // 공유 API 미지원(주로 데스크톱 브라우저) → 기존처럼 다운로드로 폴백
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -964,6 +958,26 @@
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function shareCSV() {
+    if(!appState.records || appState.records.length === 0) { await showAlert('데이터가 없습니다.'); return; }
+    const { blob, filename } = buildCSVBlob();
+
+    try {
+      const file = new File([blob], filename, { type: 'text/csv' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: '운행기록 CSV' });
+        return;
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return; // 사용자가 공유 취소
+      console.warn('공유 실패:', e);
+    }
+
+    // 공유 API 미지원 환경 → 안내 후 다운로드로 대체
+    await showAlert('이 환경에서는 공유 기능을 지원하지 않아 다운로드로 대체합니다.\n(카카오톡 등 일부 앱은 CSV 파일 첨부를 지원하지 않을 수 있어요 — 메일 앱을 이용해보세요)');
+    downloadCSV();
   }
 
   async function resetData() {
