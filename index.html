@@ -80,6 +80,8 @@
     .view-toggle-btn { flex: 1; padding: 8px; border: none; border-radius: 10px; background: var(--surface-color); color: var(--text-muted); font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .view-toggle-btn.active { background: var(--accent-color); color: white; }
     .card-date { font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; cursor: pointer; }
+    .card-date-right { display: flex; align-items: center; gap: 6px; }
+    .card-date-total { font-weight: 800; color: var(--accent-color); font-size: 0.95rem; }
     .card-date .date-chevron { transition: transform 0.25s ease; width: 16px; height: 16px; color: var(--text-muted); }
     .card-date.collapsed .date-chevron { transform: rotate(-90deg); }
     .date-group-body { overflow: hidden; }
@@ -711,8 +713,11 @@
       const isExpanded = expandedDates.has(date);
 
       html += `<div class="card-date ${isExpanded ? '' : 'collapsed'}" onclick="toggleDateGroup('${date}')">
-        <span>${date} <span style="font-weight:normal; color:var(--text-muted); font-size:0.85rem;">총 ${dailyTotal} km</span></span>
-        <i data-lucide="chevron-down" class="date-chevron"></i>
+        <span>${date}</span>
+        <span class="card-date-right">
+          <span class="card-date-total">총 ${dailyTotal} km</span>
+          <i data-lucide="chevron-down" class="date-chevron"></i>
+        </span>
       </div>`;
 
       html += `<div class="date-group-body" style="display:${isExpanded ? 'block' : 'none'};">`;
