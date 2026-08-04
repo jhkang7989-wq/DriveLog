@@ -92,7 +92,8 @@
     .card-row-top { display: flex; justify-content: space-between; align-items: center; }
     .card-time { font-size: 0.75rem; color: #777; }
     .card-distance { font-size: 1rem; font-weight: bold; color: var(--accent-color); }
-    .card-route-compact { font-size: 0.78rem; color: #444; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-addr-row { font-size: 0.76rem; color: #444; margin-top: 3px; line-height: 1.4; }
+    .card-addr-label { display: inline-block; width: 34px; font-weight: 700; color: var(--accent-color); font-size: 0.68rem; vertical-align: top; }
     .card-note-badge { font-size: 0.7rem; color: var(--accent-color); margin-top: 2px; }
 
     /* 설정 영역 */
@@ -629,19 +630,40 @@
     renderHistory();
   }
 
-  // 주소 문자열에서 지역명(시/군/구 등)만 추출 — "강원특별자치도 강릉시 ..." → "강릉시"
+  // 시/도 축약 매핑 (신규/구 명칭 둘 다 대응)
+  const SIDO_ABBR = {
+    '서울특별시': '서울', '부산광역시': '부산', '대구광역시': '대구', '인천광역시': '인천',
+    '광주광역시': '광주', '대전광역시': '대전', '울산광역시': '울산', '세종특별자치시': '세종',
+    '경기도': '경기',
+    '강원특별자치도': '강원', '강원도': '강원',
+    '충청북도': '충북', '충청남도': '충남',
+    '전북특별자치도': '전북', '전라북도': '전북', '전라남도': '전남',
+    '경상북도': '경북', '경상남도': '경남',
+    '제주특별자치도': '제주', '제주도': '제주'
+  };
+
+  // 주소 문자열에서 지역명(시/군/구)만 추출 — 요약보기 그룹 병합 판단 전용 (표시용 아님)
   function extractRegion(addr) {
     if (!addr || addr.includes('API오류') || addr.includes('주소 정보 없음')) return null;
     const parts = addr.trim().split(/\s+/);
     return parts.length >= 2 ? parts[1] : (parts[0] || null);
   }
 
-  // 화면 카드 표시 전용 — 도로명/번지를 생략하고 시/도 + 시/군/구 + 읍/면/동까지만 보여줌
-  // (원본 전체 주소는 데이터에 그대로 남아있고, CSV/백업엔 영향 없음 — 오직 화면 표시만 축약)
-  function shortenAddress(addr) {
+  // 상세보기용 — 시/도만 축약하고 나머지(시/군/구~번지)는 전부 그대로 표기
+  function formatFullAddress(addr) {
     if (!addr || addr.includes('API오류') || addr.includes('주소 정보 없음')) return addr;
     const parts = addr.trim().split(/\s+/);
-    return parts.slice(0, 3).join(' ');
+    if (parts.length > 0) parts[0] = SIDO_ABBR[parts[0]] || parts[0];
+    return parts.join(' ');
+  }
+
+  // 일지용 요약보기용 — 시/도(축약) + 시/군/구까지만 (세종은 시/군/구 단계가 없어 '세종'만 표기)
+  function formatRegionAddress(addr) {
+    if (!addr || addr.includes('API오류') || addr.includes('주소 정보 없음')) return addr;
+    const parts = addr.trim().split(/\s+/);
+    const sido = SIDO_ABBR[parts[0]] || parts[0];
+    if (sido === '세종') return '세종';
+    return parts.length >= 2 ? `${sido} ${parts[1]}` : sido;
   }
 
   // 도착지 지역이 바뀔 때까지 연속된 구간을 하나로 합산 (일지용 요약 보기 전용)
@@ -651,15 +673,17 @@
     records.forEach(r => {
       const sAddr = appState.settings.addressPref === 'road' ? (r.startAddrRoad || r.startAddrJibun) : (r.startAddrJibun || r.startAddrRoad);
       const eAddr = appState.settings.addressPref === 'road' ? (r.endAddrRoad || r.endAddrJibun) : (r.endAddrJibun || r.endAddrRoad);
-      const destRegion = extractRegion(eAddr);
+      const destRegionKey = extractRegion(eAddr); // 병합 판단 전용 키
 
       const last = groups[groups.length - 1];
-      if (last && destRegion && last.destRegion === destRegion) {
+      if (last && destRegionKey && last._destRegionKey === destRegionKey) {
         last.distance += r.distance;
+        last.destAddrRaw = eAddr || last.destAddrRaw; // 표시용 원본 주소는 최신 도착지로 갱신
       } else {
         groups.push({
           startAddr: sAddr || '(주소 정보 없음)',
-          destRegion: destRegion || (eAddr || '(주소 정보 없음)'),
+          destAddrRaw: eAddr || '(주소 정보 없음)',
+          _destRegionKey: destRegionKey,
           distance: r.distance
         });
       }
@@ -696,7 +720,7 @@
       if (historyViewMode === 'summary') {
         buildSummaryGroups(chronological).slice().reverse().forEach(g => {
           html += `<div class="summary-card">
-            <div class="summary-route">${shortenAddress(g.startAddr)} → ${g.destRegion}</div>
+            <div class="summary-route">${formatRegionAddress(g.startAddr)} → ${formatRegionAddress(g.destAddrRaw)}</div>
             <span class="summary-distance">${g.distance.toFixed(1)} km</span>
           </div>`;
         });
@@ -718,7 +742,8 @@
                 <span class="card-time">${sTime} ~ ${eTime}</span>
                 <span class="card-distance">${r.distance.toFixed(1)} km</span>
               </div>
-              <div class="card-route-compact">${shortenAddress(sAddr)} → ${shortenAddress(eAddr)}</div>
+              <div class="card-addr-row"><span class="card-addr-label">출발</span>${formatFullAddress(sAddr)}</div>
+              <div class="card-addr-row"><span class="card-addr-label">도착</span>${formatFullAddress(eAddr)}</div>
               ${r.note ? `<div class="card-note-badge">${r.note}</div>` : ''}
             </div>
           </div>`;
@@ -891,7 +916,7 @@
         let dailySum = 0;
         groups.forEach(g => {
           dailySum += g.distance;
-          csvContent += `${date},${escape(g.startAddr)},${escape(g.destRegion)},${g.distance.toFixed(1)}\n`;
+          csvContent += `${date},${escape(formatRegionAddress(g.startAddr))},${escape(formatRegionAddress(g.destAddrRaw))},${g.distance.toFixed(1)}\n`;
         });
         csvContent += `${date} 총합,,,${dailySum.toFixed(1)}\n`;
       });
