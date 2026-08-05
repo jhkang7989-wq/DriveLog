@@ -471,7 +471,14 @@
     },
     (err) => {
       document.getElementById('gps-dot').className = 'gps-dot red';
-      document.getElementById('gps-text').innerText = 'GPS 수신불가';
+      const txt = document.getElementById('gps-text');
+      if (err.code === 1) { // PERMISSION_DENIED
+        txt.innerText = 'GPS 권한 거부됨';
+      } else if (err.code === 2) { // POSITION_UNAVAILABLE
+        txt.innerText = 'GPS 신호없음';
+      } else { // TIMEOUT 등
+        txt.innerText = 'GPS 수신불가';
+      }
     },
     { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
   );
