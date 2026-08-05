@@ -15,8 +15,6 @@
       --surface-color: #1E1E1E;
       --card-color: #F4F1E1; 
       --accent-color: #F0713B; 
-      --accent-muted: #C9825A;
-      --warning-color: #C99A3A;
       --text-main: #FFFFFF;
       --text-muted: #888888;
       --text-card: #121212;
@@ -65,7 +63,7 @@
 
     /* 메인 화면 */
     .header-area { margin-bottom: 40px; margin-top: 10px; }
-    .distance-display h1 { font-size: 3.2rem; font-weight: 800; color: var(--accent-color); line-height: 1.1; letter-spacing: 1px; font-family: 'Courier New', ui-monospace, 'SF Mono', Consolas, monospace; font-variant-numeric: tabular-nums; }
+    .distance-display h1 { font-size: 3.2rem; font-weight: 800; color: var(--accent-color); line-height: 1.1; letter-spacing: -1px;}
     .distance-display p { font-size: 1rem; color: var(--text-muted); margin-bottom: 8px; }
     .main-btn-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px; }
     .main-toggle-btn { width: 220px; height: 220px; border-radius: 50%; border: none; background: var(--surface-color); color: var(--text-main); font-size: 2.2rem; font-weight: bold; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; box-shadow: 10px 10px 20px rgba(0,0,0,0.2), -10px -10px 20px rgba(255,255,255,0.05); transition: all 0.2s ease; cursor: pointer; }
@@ -83,29 +81,29 @@
     .view-toggle-btn.active { background: var(--accent-color); color: white; }
     .card-date { font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; cursor: pointer; }
     .card-date-right { display: flex; align-items: center; gap: 6px; }
-    .card-date-total { font-weight: 800; color: var(--accent-muted); font-size: 0.95rem; }
+    .card-date-total { font-weight: 800; color: var(--accent-color); font-size: 0.95rem; }
     .card-date .date-chevron { transition: transform 0.25s ease; width: 16px; height: 16px; color: var(--text-muted); }
     .card-date.collapsed .date-chevron { transform: rotate(-90deg); }
     .date-group-body { overflow: hidden; }
     .summary-card { background: var(--card-color); color: var(--text-card); border-radius: 14px; padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
     .summary-route { font-size: 0.85rem; font-weight: 600; flex: 1; line-height: 1.4; }
-    .summary-distance { font-size: 0.95rem; font-weight: bold; color: var(--accent-muted); white-space: nowrap; flex-shrink: 0; }
+    .summary-distance { font-size: 0.95rem; font-weight: bold; color: var(--accent-color); white-space: nowrap; flex-shrink: 0; }
     .swipe-wrapper { position: relative; border-radius: 14px; margin-bottom: 8px; overflow: hidden; }
     .swipe-delete-bg { position: absolute; top: 0; right: 0; bottom: 0; width: 64px; background: #F44336; display: flex; align-items: center; justify-content: center; color: white; }
     .timeline-card { background: var(--card-color); color: var(--text-card); border-top-left-radius: 14px; border-bottom-left-radius: 14px; border-top-right-radius: 0; border-bottom-right-radius: 0; padding: 10px 14px; position: relative; margin-bottom: 0; touch-action: pan-y; transition: transform 0.25s ease; will-change: transform; }
     .card-row-top { display: flex; justify-content: space-between; align-items: center; }
     .card-time { font-size: 0.75rem; color: #777; }
-    .card-distance { font-size: 1rem; font-weight: bold; color: var(--accent-muted); }
+    .card-distance { font-size: 1rem; font-weight: bold; color: var(--accent-color); }
     .card-addr-row { font-size: 0.76rem; color: #444; margin-top: 3px; line-height: 1.4; }
-    .card-addr-label { display: inline-block; width: 34px; font-weight: 700; color: var(--accent-muted); font-size: 0.68rem; vertical-align: top; }
-    .card-note-badge { font-size: 0.7rem; color: var(--warning-color); margin-top: 2px; }
+    .card-addr-label { display: inline-block; width: 34px; font-weight: 700; color: var(--accent-color); font-size: 0.68rem; vertical-align: top; }
+    .card-note-badge { font-size: 0.7rem; color: var(--accent-color); margin-top: 2px; }
 
     /* 설정 영역 */
     .settings-group { background: var(--surface-color); border-radius: var(--border-radius-card); padding: 10px 20px; margin-bottom: 20px; }
     .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
     .setting-item:last-child { border-bottom: none; }
     .setting-label { display: flex; align-items: center; gap: 12px; }
-    .setting-action { background: var(--accent-muted); color: white; border: none; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .setting-action { background: var(--accent-color); color: white; border: none; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
     .setting-action i { width: 19px; height: 19px; }
     .advanced-toggle { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; cursor: pointer; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; }
     .advanced-toggle .adv-chevron { transition: transform 0.25s ease; width: 16px; height: 16px; }
@@ -167,7 +165,7 @@
       <div class="distance-display">
         <p>오늘 누적 이동 거리</p>
         <h1><span id="today-distance">0.0</span> <span style="font-size: 1.2rem;">km</span></h1>
-        <p style="margin-top:8px; font-size:1.05rem;">이번 달 누계: <span id="month-distance" style="font-size:1.3rem; font-weight:700; color:var(--text-main); font-family:'Courier New', ui-monospace, monospace;">0.0</span> km</p>
+        <p style="margin-top:8px; font-size:1.05rem;">이번 달 누계: <span id="month-distance" style="font-size:1.3rem; font-weight:700; color:var(--text-main);">0.0</span> km</p>
       </div>
     </div>
     <div class="main-btn-container">
@@ -191,7 +189,6 @@
       <button class="view-toggle-btn active" id="btn-view-detail" onclick="setHistoryViewMode('detail')">상세보기</button>
       <button class="view-toggle-btn" id="btn-view-summary" onclick="setHistoryViewMode('summary')">일지용 요약</button>
     </div>
-    <div id="week-chart-container" style="margin-bottom:18px;"></div>
     <div id="history-list"></div>
   </div>
 
@@ -714,56 +711,10 @@
     return groups;
   }
 
-  function renderWeekChart() {
-    const container = document.getElementById('week-chart-container');
-    if (!container) return;
-
-    // 최근 7일(오늘 포함) 날짜 목록 - 한국시간 기준
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      days.push(getKSTDateString(d));
-    }
-
-    const totals = days.map(d => (appState.records || []).filter(r => r.date === d).reduce((sum, r) => sum + r.distance, 0));
-    const max = Math.max(...totals, 1);
-    const todayStr = getKSTDateString();
-
-    const barWidth = 28, gap = 12, chartHeight = 46;
-    const svgWidth = days.length * (barWidth + gap) - gap;
-
-    let bars = '';
-    days.forEach((d, i) => {
-      const h = totals[i] > 0 ? Math.max((totals[i] / max) * chartHeight, 3) : 2;
-      const x = i * (barWidth + gap);
-      const y = chartHeight - h;
-      const isToday = d === todayStr;
-      const dayNum = parseInt(d.slice(8, 10), 10);
-      bars += `<rect x="${x}" y="${y}" width="${barWidth}" height="${h}" rx="4" fill="${isToday ? '#F0713B' : '#C9825A'}" opacity="${isToday ? '1' : '0.55'}"></rect>
-        <text x="${x + barWidth/2}" y="${chartHeight + 14}" text-anchor="middle" font-size="10" fill="${isToday ? '#F0713B' : '#888'}" font-weight="${isToday ? '700' : '400'}">${dayNum}</text>`;
-    });
-
-    container.innerHTML = `
-      <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:6px;">최근 7일 (km)</div>
-      <svg width="100%" height="${chartHeight + 20}" viewBox="0 0 ${svgWidth} ${chartHeight + 20}" preserveAspectRatio="xMinYMid meet">${bars}</svg>
-    `;
-  }
-
   function renderHistory() {
     const list = document.getElementById('history-list');
     list.innerHTML = '';
-    if(!appState.records || appState.records.length === 0) {
-      list.innerHTML = `<div style="text-align:center; color:var(--text-muted); margin-top:40px;">
-        <svg width="140" height="100" viewBox="0 0 140 100" fill="none" style="margin-bottom:12px;">
-          <path d="M15 85 Q 50 35 75 50 T 125 15" stroke="#C9825A" stroke-width="12" stroke-linecap="round" opacity="0.25"/>
-          <path d="M15 85 Q 50 35 75 50 T 125 15" stroke="#F0713B" stroke-width="2.5" stroke-dasharray="7 7" stroke-linecap="round"/>
-        </svg>
-        <div>아직 운행 기록이 없습니다</div>
-      </div>`;
-      renderWeekChart();
-      return;
-    }
+    if(!appState.records || appState.records.length === 0) { list.innerHTML = '<div style="text-align:center; color:var(--text-muted); margin-top:50px;">운행 기록이 없습니다.</div>'; return; }
 
     const grouped = appState.records.reduce((acc, obj) => { if (!acc[obj.date]) acc[obj.date] = []; acc[obj.date].push(obj); return acc; }, {});
     const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
@@ -828,7 +779,6 @@
     list.innerHTML = html;
     lucide.createIcons();
     attachSwipeHandlers();
-    renderWeekChart();
   }
 
   /* 카드 스와이프(좌측으로 밀어 삭제) 처리 */
