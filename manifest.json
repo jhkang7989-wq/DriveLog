@@ -1,6 +1,6 @@
 {
-  "name": "차량 운행기록부",
-  "short_name": "운행기록",
+  "name": "DriveLog for business",
+  "short_name": "DriveLog",
   "description": "개인용 오프라인 지원 차량 운행기록부 PWA",
   "start_url": "./index.html",
   "display": "standalone",
