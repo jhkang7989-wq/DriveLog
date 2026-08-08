@@ -203,41 +203,57 @@
     </div>
 
     <div class="settings-group">
-      <div class="setting-item">
-        <div class="setting-label"><i data-lucide="moon"></i> 다크 모드</div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="setting-darkmode" checked onchange="toggleDarkMode()">
-          <span class="slider"></span>
-        </label>
+      <div class="advanced-toggle" id="nfc-guide-toggle" onclick="toggleNfcGuide()">
+        <span style="display:flex; align-items:center; gap:8px; color:var(--text-main); font-weight:700; font-size:0.95rem;"><i data-lucide="nfc" style="width:18px; height:18px; color:var(--accent-color);"></i> NFC 태그 사용법</span>
+        <i data-lucide="chevron-down" class="adv-chevron"></i>
       </div>
-      <div class="setting-item">
-        <div class="setting-label"><i data-lucide="smartphone"></i> 햅틱(진동)</div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="setting-haptic" checked onchange="saveSettings()">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="setting-item">
-        <div class="setting-label">
-          <div><i data-lucide="map"></i> 주소 표기</div>
+      <div id="nfc-guide-body" style="display:none;">
+        <div style="font-size:0.82rem; line-height:1.7; padding-bottom:14px;">
+          <p style="margin-bottom:12px; color:var(--text-muted);">차량용 NFC 스티커에 아래 주소를 등록해두면, 태그만 찍어도 출발/도착이 자동으로 기록돼요.</p>
+
+          <div style="background:var(--bg-color); border-radius:10px; padding:10px 12px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <code id="nfc-url-text" style="font-size:0.68rem; color:var(--accent-color); word-break:break-all; flex:1;">https://jhkang7989-wq.github.io/DriveLog/?action=toggle</code>
+            <button onclick="copyNfcUrl()" style="flex-shrink:0; background:var(--accent-color); color:white; border:none; border-radius:8px; padding:6px 10px; font-size:0.7rem; cursor:pointer;">복사</button>
+          </div>
+
+          <div style="font-weight:700; margin-bottom:6px; color:var(--text-main);">📱 안드로이드</div>
+          <ol style="padding-left:18px; margin-bottom:16px; color:var(--text-muted);">
+            <li>"NFC Tools" 앱 설치 (플레이스토어)</li>
+            <li>앱 실행 → "쓰기" 탭</li>
+            <li>"레코드 추가" → "URL/URI" 선택</li>
+            <li>위 주소 붙여넣기</li>
+            <li>"쓰기" 누르고 폰을 태그에 가까이 대기</li>
+          </ol>
+
+          <div style="font-weight:700; margin-bottom:6px; color:var(--text-main);">🍎 아이폰</div>
+          <ol style="padding-left:18px; margin-bottom:16px; color:var(--text-muted);">
+            <li>"단축어" 앱 → "자동화" 탭</li>
+            <li>"+" → "개인 자동화 생성" → "NFC" 선택</li>
+            <li>태그에 폰 대서 스캔/등록</li>
+            <li>동작 추가 → "URL 열기" → 위 주소 입력</li>
+            <li>"실행 전 확인" 옵션은 꺼두기</li>
+          </ol>
+
+          <div style="font-weight:700; margin-bottom:6px; color:var(--text-main);">⚠️ 태그를 찍었는데 안 될 때</div>
+          <ul style="padding-left:18px; margin:0; color:var(--text-muted);">
+            <li>폰 설정에서 NFC 기능이 켜져 있는지 확인</li>
+            <li>화면이 꺼져있거나 잠긴 상태면 인식 안 되는 기종이 많아요 — 화면 켜고 시도</li>
+            <li>태그 대는 위치는 보통 휴대폰 후면 상단~중앙 (삼성페이 찍는 자리와 동일)</li>
+            <li>브라우저로 열린다면 → 설정 → 앱 → DriveLog → 열기 → "지원되는 링크"에서 이 도메인을 켜주세요</li>
+          </ul>
         </div>
-        <select id="setting-address" onchange="saveSettings()" style="background:var(--bg-color); color:var(--text-main); border:1px solid #444; padding:5px; border-radius:8px;">
-          <option value="jibun">지번 우선</option>
-          <option value="road">도로명 우선</option>
-        </select>
-      </div>
-      <div class="setting-item">
-        <div class="setting-label"><i data-lucide="gauge"></i> 계기판 오차 (+%)</div>
-        <input type="number" id="setting-offset" value="3" onchange="saveSettings()" style="width:60px; text-align:right; background:var(--bg-color); color:var(--text-main); border:1px solid #444; padding:5px; border-radius:8px;">
       </div>
     </div>
 
     <div class="settings-group">
       <div class="setting-item">
-        <div class="setting-label"><i data-lucide="file-spreadsheet"></i> 엑셀(CSV) 다운로드</div>
-        <button class="setting-action" onclick="downloadCSV()"><i data-lucide="download"></i></button>
+        <div class="setting-label"><i data-lucide="file-spreadsheet"></i> 엑셀(CSV) 내보내기</div>
+        <div style="display:flex; gap:6px;">
+          <button class="setting-action" onclick="downloadCSV()"><i data-lucide="download"></i></button>
+          <button class="setting-action" onclick="shareCSV()"><i data-lucide="share-2"></i></button>
+        </div>
       </div>
-      <div style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px;">현재 <span id="csv-mode-label">상세</span> 보기 기준으로 내보내집니다 (내역 탭에서 전환 가능)</div>
+      <div style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px;">현재 <span id="csv-mode-label">상세</span> 보기 기준 · ⬇다운로드 · ⇗공유(메일 앱 권장)</div>
       <div class="setting-item">
         <div class="setting-label"><i data-lucide="download-cloud"></i> 데이터 백업 (JSON)</div>
         <button class="setting-action" onclick="exportBackup()"><i data-lucide="save"></i></button>
@@ -253,6 +269,40 @@
         <button class="setting-action" onclick="deletePastMonths()"><i data-lucide="calendar-x"></i></button>
       </div>
       <div style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px;">이번 달을 제외한 지난 기록을 삭제합니다</div>
+    </div>
+
+    <div class="settings-group">
+      <div class="advanced-toggle" id="env-settings-toggle" onclick="toggleEnvSettings()">
+        <span>환경설정</span>
+        <i data-lucide="chevron-down" class="adv-chevron"></i>
+      </div>
+      <div id="env-settings-body" style="display:none;">
+        <div class="setting-item">
+          <div class="setting-label"><i data-lucide="moon"></i> 다크 모드</div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="setting-darkmode" checked onchange="toggleDarkMode()">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label"><i data-lucide="smartphone"></i> 햅틱(진동)</div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="setting-haptic" checked onchange="saveSettings()">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label"><i data-lucide="map"></i> 주소 표기</div>
+          <select id="setting-address" onchange="saveSettings()" style="background:var(--bg-color); color:var(--text-main); border:1px solid #444; padding:5px; border-radius:8px;">
+            <option value="jibun">지번 우선</option>
+            <option value="road">도로명 우선</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label"><i data-lucide="gauge"></i> 계기판 오차 (+%)</div>
+          <input type="number" id="setting-offset" value="3" onchange="saveSettings()" style="width:60px; text-align:right; background:var(--bg-color); color:var(--text-main); border:1px solid #444; padding:5px; border-radius:8px;">
+        </div>
+      </div>
     </div>
 
     <div class="settings-group">
@@ -1015,6 +1065,65 @@
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function shareCSV() {
+    if(!appState.records || appState.records.length === 0) { await showAlert('데이터가 없습니다.'); return; }
+
+    const modeLabel = historyViewMode === 'summary' ? '일지용 요약' : '상세';
+    const ok = await showConfirm(`"${modeLabel}" 보기 기준으로 CSV를 공유하시겠습니까?`);
+    if (!ok) return;
+
+    const { blob, filename } = buildCSVBlob();
+
+    try {
+      const file = new File([blob], filename, { type: 'text/csv' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: '운행기록 CSV' });
+        return;
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return; // 사용자가 공유 취소
+      console.warn('공유 실패:', e);
+    }
+
+    // 공유 API 미지원 환경 → 안내 후 다운로드로 대체
+    await showAlert('이 환경에서는 공유 기능을 지원하지 않아 다운로드로 대체합니다.\n(카카오톡 등 일부 앱은 CSV 파일 첨부를 지원하지 않을 수 있어요 — 메일 앱을 이용해보세요)');
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function toggleNfcGuide() {
+    const body = document.getElementById('nfc-guide-body');
+    const toggle = document.getElementById('nfc-guide-toggle');
+    const isOpen = body.style.display === 'block';
+    body.style.display = isOpen ? 'none' : 'block';
+    toggle.classList.toggle('open', !isOpen);
+  }
+
+  async function copyNfcUrl() {
+    const text = document.getElementById('nfc-url-text').innerText;
+    try {
+      await navigator.clipboard.writeText(text);
+      await showAlert('주소가 복사됐습니다.');
+    } catch(e) {
+      console.warn('클립보드 복사 실패:', e);
+      await showAlert('복사에 실패했습니다. 직접 길게 눌러서 복사해주세요.');
+    }
+  }
+
+  function toggleEnvSettings() {
+    const body = document.getElementById('env-settings-body');
+    const toggle = document.getElementById('env-settings-toggle');
+    const isOpen = body.style.display === 'block';
+    body.style.display = isOpen ? 'none' : 'block';
+    toggle.classList.toggle('open', !isOpen);
   }
 
   function toggleAdvancedSettings() {
