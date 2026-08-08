@@ -253,7 +253,11 @@
           <button class="setting-action" onclick="shareCSV()"><i data-lucide="share-2"></i></button>
         </div>
       </div>
-      <div style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px;">⬇다운로드: 현재 <span id="csv-mode-label">상세</span> 보기 기준 · ⇗공유: 항상 일지용 요약 (메일 앱 권장)</div>
+      <div style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+        <i data-lucide="download" style="width:11px; height:11px; flex-shrink:0;"></i>다운로드: 현재 <span id="csv-mode-label">상세</span> 보기 기준
+        <span style="margin:0 2px;">·</span>
+        <i data-lucide="share-2" style="width:11px; height:11px; flex-shrink:0;"></i>공유: 항상 일지용 요약 (메일 앱 권장)
+      </div>
       <div class="setting-item">
         <div class="setting-label"><i data-lucide="download-cloud"></i> 데이터 백업 (JSON)</div>
         <button class="setting-action" onclick="exportBackup()"><i data-lucide="save"></i></button>
@@ -798,6 +802,7 @@
   }
 
   function renderHistory() {
+    currentlyOpenSwipeCard = null; // 새로 렌더링되므로 기존 카드 참조 초기화
     const list = document.getElementById('history-list');
     list.innerHTML = '';
     if(!appState.records || appState.records.length === 0) { list.innerHTML = '<div style="text-align:center; color:var(--text-muted); margin-top:50px;">운행 기록이 없습니다.</div>'; return; }
@@ -869,11 +874,27 @@
 
   /* 카드 스와이프(좌측으로 밀어 삭제) 처리 */
   const SWIPE_OPEN_PX = 64;
+  let currentlyOpenSwipeCard = null; // 지금 열려있는(스와이프된) 카드 하나만 추적
+
+  function closeOpenSwipeCard() {
+    if (currentlyOpenSwipeCard) {
+      currentlyOpenSwipeCard.style.transition = 'transform 0.25s ease';
+      currentlyOpenSwipeCard.style.transform = 'translateX(0)';
+      currentlyOpenSwipeCard = null;
+    }
+  }
+
   function attachSwipeHandlers() {
     document.querySelectorAll('.timeline-card').forEach(card => {
       let startX = 0, currentX = 0, dragging = false, moved = false;
 
-      const onStart = (x) => { startX = x; dragging = true; moved = false; card.style.transition = 'none'; };
+      const onStart = (x) => {
+        // 다른 카드가 열려있었다면 이번 카드 조작 시작과 동시에 자동으로 닫기
+        if (currentlyOpenSwipeCard && currentlyOpenSwipeCard !== card) {
+          closeOpenSwipeCard();
+        }
+        startX = x; dragging = true; moved = false; card.style.transition = 'none';
+      };
       const onMove = (x) => {
         if (!dragging) return;
         let delta = x - startX;
@@ -890,8 +911,10 @@
         // 절반 이상 밀렸으면 완전히 열어서 고정, 아니면 원위치
         if (currentX < -SWIPE_OPEN_PX / 2) {
           card.style.transform = `translateX(-${SWIPE_OPEN_PX}px)`;
+          currentlyOpenSwipeCard = card;
         } else {
           card.style.transform = 'translateX(0)';
+          if (currentlyOpenSwipeCard === card) currentlyOpenSwipeCard = null;
         }
       };
 
@@ -919,6 +942,7 @@
       // 취소 시 카드 원위치
       const card = document.querySelector(`.timeline-card[data-id="${id}"]`);
       if (card) card.style.transform = 'translateX(0)';
+      if (currentlyOpenSwipeCard === card) currentlyOpenSwipeCard = null;
       return;
     }
     appState.records = appState.records.filter(r => r.id !== id);
