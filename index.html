@@ -489,11 +489,11 @@
   }
 
   function saveSettings() {
-    triggerHaptic();
     appState.settings.darkMode = document.getElementById('setting-darkmode').checked;
     appState.settings.haptic = document.getElementById('setting-haptic').checked;
     appState.settings.addressPref = document.getElementById('setting-address').value;
     appState.settings.offsetPercent = parseFloat(document.getElementById('setting-offset').value) || 0;
+    triggerHaptic();
     saveData();
     renderHistory();
   }
