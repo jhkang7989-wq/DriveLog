@@ -261,7 +261,7 @@
       <div id="last-backup-label" style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px;"></div>
       <div class="setting-item">
         <div class="setting-label"><i data-lucide="upload-cloud"></i> 데이터 복원</div>
-        <button class="setting-action" onclick="document.getElementById('restore-file-input').click()"><i data-lucide="upload"></i></button>
+        <button class="setting-action" onclick="triggerHaptic(); document.getElementById('restore-file-input').click()"><i data-lucide="upload"></i></button>
         <input type="file" id="restore-file-input" accept="application/json" style="display:none;" onchange="handleRestoreFile(event)">
       </div>
       <div class="setting-item">
@@ -1053,6 +1053,7 @@
 
   async function downloadCSV() {
     if(!appState.records || appState.records.length === 0) { await showAlert('데이터가 없습니다.'); return; }
+    triggerHaptic();
 
     const modeLabel = historyViewMode === 'summary' ? '일지용 요약' : '상세';
     const ok = await showConfirm(`"${modeLabel}" 보기 기준으로 CSV 파일을 다운로드하시겠습니까?`);
@@ -1103,7 +1104,6 @@
   }
 
   function toggleNfcGuide() {
-    triggerHaptic();
     const body = document.getElementById('nfc-guide-body');
     const toggle = document.getElementById('nfc-guide-toggle');
     const isOpen = body.style.display === 'block';
@@ -1123,7 +1123,6 @@
   }
 
   function toggleEnvSettings() {
-    triggerHaptic();
     const body = document.getElementById('env-settings-body');
     const toggle = document.getElementById('env-settings-toggle');
     const isOpen = body.style.display === 'block';
@@ -1132,7 +1131,6 @@
   }
 
   function toggleAdvancedSettings() {
-    triggerHaptic();
     const body = document.getElementById('advanced-settings-body');
     const toggle = document.getElementById('advanced-toggle');
     const isOpen = body.style.display === 'block';
@@ -1142,6 +1140,7 @@
 
   async function deletePastMonths() {
     if (!appState.records || appState.records.length === 0) { await showAlert('삭제할 데이터가 없습니다.'); return; }
+    triggerHaptic();
 
     const currentMonth = getKSTDateString().slice(0, 7); // 예: "2026-08"
     const toDelete = appState.records.filter(r => r.date.slice(0, 7) !== currentMonth);
@@ -1181,6 +1180,7 @@
   }
 
   async function exportBackup() {
+    triggerHaptic();
     const jsonContent = JSON.stringify(appState, null, 2);
     const fixedFilename = '운행기록_백업.json'; // 날짜 안 붙임 — 매번 같은 이름으로 저장되게
 
