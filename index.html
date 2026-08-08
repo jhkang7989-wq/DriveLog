@@ -216,7 +216,7 @@
             <button onclick="copyNfcUrl()" style="flex-shrink:0; background:var(--accent-color); color:white; border:none; border-radius:8px; padding:6px 10px; font-size:0.7rem; cursor:pointer;">복사</button>
           </div>
 
-          <div style="font-weight:700; margin-bottom:6px; color:var(--text-main);">📱 안드로이드</div>
+          <div style="display:flex; align-items:center; gap:6px; font-weight:700; margin-bottom:6px; color:var(--text-main);"><i data-lucide="smartphone" style="width:15px; height:15px; color:var(--accent-color);"></i> 안드로이드</div>
           <ol style="padding-left:18px; margin-bottom:16px; color:var(--text-muted);">
             <li>"NFC Tools" 앱 설치 (플레이스토어)</li>
             <li>앱 실행 → "쓰기" 탭</li>
@@ -225,7 +225,7 @@
             <li>"쓰기" 누르고 폰을 태그에 가까이 대기</li>
           </ol>
 
-          <div style="font-weight:700; margin-bottom:6px; color:var(--text-main);">🍎 아이폰</div>
+          <div style="display:flex; align-items:center; gap:6px; font-weight:700; margin-bottom:6px; color:var(--text-main);"><i data-lucide="smartphone" style="width:15px; height:15px; color:var(--accent-color);"></i> 아이폰</div>
           <ol style="padding-left:18px; margin-bottom:16px; color:var(--text-muted);">
             <li>"단축어" 앱 → "자동화" 탭</li>
             <li>"+" → "개인 자동화 생성" → "NFC" 선택</li>
@@ -234,7 +234,7 @@
             <li>"실행 전 확인" 옵션은 꺼두기</li>
           </ol>
 
-          <div style="font-weight:700; margin-bottom:6px; color:var(--text-main);">⚠️ 태그를 찍었는데 안 될 때</div>
+          <div style="display:flex; align-items:center; gap:6px; font-weight:700; margin-bottom:6px; color:var(--text-main);"><i data-lucide="triangle-alert" style="width:15px; height:15px; color:var(--accent-color);"></i> 태그를 찍었는데 안 될 때</div>
           <ul style="padding-left:18px; margin:0; color:var(--text-muted);">
             <li>폰 설정에서 NFC 기능이 켜져 있는지 확인</li>
             <li>화면이 꺼져있거나 잠긴 상태면 인식 안 되는 기종이 많아요 — 화면 켜고 시도</li>
@@ -489,6 +489,7 @@
   }
 
   function saveSettings() {
+    triggerHaptic();
     appState.settings.darkMode = document.getElementById('setting-darkmode').checked;
     appState.settings.haptic = document.getElementById('setting-haptic').checked;
     appState.settings.addressPref = document.getElementById('setting-address').value;
@@ -560,6 +561,7 @@
   function triggerHaptic() { if (appState.settings.haptic && navigator.vibrate) navigator.vibrate(50); }
 
   function switchTab(tabId) {
+    triggerHaptic();
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab-${tabId}`).classList.add('active');
@@ -719,6 +721,7 @@
   let historyViewMode = 'detail';
 
   function setHistoryViewMode(mode) {
+    triggerHaptic();
     historyViewMode = mode;
     document.getElementById('btn-view-detail').classList.toggle('active', mode === 'detail');
     document.getElementById('btn-view-summary').classList.toggle('active', mode === 'summary');
@@ -728,6 +731,7 @@
   }
 
   function toggleDateGroup(date) {
+    triggerHaptic();
     if (expandedDates.has(date)) expandedDates.delete(date); else expandedDates.add(date);
     renderHistory();
   }
@@ -1100,6 +1104,7 @@
   }
 
   function toggleNfcGuide() {
+    triggerHaptic();
     const body = document.getElementById('nfc-guide-body');
     const toggle = document.getElementById('nfc-guide-toggle');
     const isOpen = body.style.display === 'block';
@@ -1119,6 +1124,7 @@
   }
 
   function toggleEnvSettings() {
+    triggerHaptic();
     const body = document.getElementById('env-settings-body');
     const toggle = document.getElementById('env-settings-toggle');
     const isOpen = body.style.display === 'block';
@@ -1127,6 +1133,7 @@
   }
 
   function toggleAdvancedSettings() {
+    triggerHaptic();
     const body = document.getElementById('advanced-settings-body');
     const toggle = document.getElementById('advanced-toggle');
     const isOpen = body.style.display === 'block';
