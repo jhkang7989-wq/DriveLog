@@ -1,6 +1,12 @@
-const CACHE_NAME = 'drive-log-v2'; // 캐싱 전략 변경으로 버전 올림 (기존 캐시 정리 유도)
+const CACHE_NAME = 'drive-log-v3'; // index.html을 style.css + js/app-*.js로 분리하면서 버전 올림
 const ASSETS = [
   './index.html',
+  './style.css',
+  './js/app-core.js',
+  './js/app-location.js',
+  './js/app-drive.js',
+  './js/app-history.js',
+  './js/app-data.js',
   './manifest.json',
   './app_icon.png',
   'https://unpkg.com/lucide@latest'
