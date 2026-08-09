@@ -12,7 +12,7 @@ let appState = {
   isRunning: false,
   currentTrip: null,
   records: [],
-  settings: { darkMode: true, haptic: true, addressPref: 'jibun', offsetPercent: 3 }
+  settings: { darkMode: true, haptic: true, addressPref: 'jibun', offsetPercent: 3, waypointsEnabled: true }
 };
 
 function showAlert(message) {
@@ -56,6 +56,7 @@ function loadData() {
   document.getElementById('setting-haptic').checked = appState.settings.haptic !== false;
   document.getElementById('setting-address').value = appState.settings.addressPref || 'jibun';
   document.getElementById('setting-offset').value = appState.settings.offsetPercent || 3;
+  document.getElementById('setting-waypoints').checked = appState.settings.waypointsEnabled !== false;
 
   toggleDarkMode(true);
   updateMainUI();
@@ -99,9 +100,11 @@ function saveSettings() {
   appState.settings.haptic = document.getElementById('setting-haptic').checked;
   appState.settings.addressPref = document.getElementById('setting-address').value;
   appState.settings.offsetPercent = parseFloat(document.getElementById('setting-offset').value) || 0;
+  appState.settings.waypointsEnabled = document.getElementById('setting-waypoints').checked;
   triggerHaptic();
   saveData();
   renderHistory();
+  updateWaypointButtonVisibility();
 }
 
 function toggleDarkMode(init = false) {
@@ -126,6 +129,17 @@ function switchTab(tabId) {
 function showLoading(show, text="처리중...") {
   document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
   document.getElementById('loading-text').innerText = text;
+}
+
+// 확인 버튼 없이 잠깐 떴다 사라지는 짧은 안내(경유지 저장 완료, 최대 개수 안내 등) — showAlert와 달리 흐름을 막지 않음
+let toastTimer = null;
+function showToast(message, duration = 1800) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.innerText = message;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
 }
 
 // 한국시간(KST, UTC+9) 기준 날짜 문자열(YYYY-MM-DD) 반환

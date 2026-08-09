@@ -8,27 +8,81 @@ async function toggleDrive() {
 
   if (!appState.isRunning) {
     const addr = await getAddressesFromCoords(loc.lat, loc.lng);
-    appState.currentTrip = { id: Date.now(), startTime: new Date().toISOString(), startLat: loc.lat, startLng: loc.lng, startAddrRoad: addr.road, startAddrJibun: addr.jibun };
+    appState.currentTrip = { id: Date.now(), startTime: new Date().toISOString(), startLat: loc.lat, startLng: loc.lng, startAddrRoad: addr.road, startAddrJibun: addr.jibun, waypoints: [] };
     appState.isRunning = true;
     saveData();
   } else {
     const endAddr = await getAddressesFromCoords(loc.lat, loc.lng);
     const trip = appState.currentTrip;
-    const distResult = await calculateDistance(trip.startLat, trip.startLng, loc.lat, loc.lng);
-    let finalDistance = Math.round((distResult.distanceKm * (1 + (appState.settings.offsetPercent / 100))) * 10) / 10;
+    const waypoints = trip.waypoints || [];
+
+    // 총거리 = 출발→경유1→경유2→...→도착 순으로 이어지는 구간 거리의 합
+    // (경유지가 없으면 lastPoint가 출발지가 되어 기존 방식과 동일하게 동작)
+    const lastPoint = waypoints.length > 0 ? waypoints[waypoints.length - 1] : { lat: trip.startLat, lng: trip.startLng };
+    const finalLegResult = await calculateDistance(lastPoint.lat, lastPoint.lng, loc.lat, loc.lng);
+
+    const rawTotalKm = waypoints.reduce((sum, w) => sum + w.legDistanceKm, 0) + finalLegResult.distanceKm;
+    const anyEstimated = waypoints.some(w => w.legEstimated) || finalLegResult.estimated;
+    // 계기판 오차 보정은 구간마다가 아니라 전체 합산 거리에 딱 한 번만 적용 (반올림 오차 누적 방지)
+    let finalDistance = Math.round((rawTotalKm * (1 + (appState.settings.offsetPercent / 100))) * 10) / 10;
 
     if (!appState.records) appState.records = [];
-    appState.records.push({ id: trip.id, date: getKSTDateString(), startTime: trip.startTime, endTime: new Date().toISOString(), startAddrRoad: trip.startAddrRoad, startAddrJibun: trip.startAddrJibun, endAddrRoad: endAddr.road, endAddrJibun: endAddr.jibun, distance: finalDistance, note: distResult.estimated ? "⚠️ 거리 추정치(직선거리 기반)" : "" });
+    appState.records.push({
+      id: trip.id, date: getKSTDateString(), startTime: trip.startTime, endTime: new Date().toISOString(),
+      startLat: trip.startLat, startLng: trip.startLng, endLat: loc.lat, endLng: loc.lng,
+      startAddrRoad: trip.startAddrRoad, startAddrJibun: trip.startAddrJibun, endAddrRoad: endAddr.road, endAddrJibun: endAddr.jibun,
+      waypoints: waypoints, finalLegKm: finalLegResult.distanceKm, finalLegEstimated: finalLegResult.estimated,
+      distance: finalDistance, note: anyEstimated ? "⚠️ 거리 추정치(직선거리 기반)" : ""
+    });
 
     appState.isRunning = false;
     appState.currentTrip = null;
     saveData();
 
-    if (distResult.estimated) {
+    if (anyEstimated) {
       document.getElementById('location-text').innerHTML = `<span style="color:#FFB74D;">거리 계산 API 오류 발생</span><br>(직선거리 기반으로 추정 계산되었습니다)`;
     }
   }
   showLoading(false);
+}
+
+const MAX_WAYPOINTS = 5;
+
+async function addWaypoint() {
+  triggerHaptic();
+  if (!appState.isRunning || !appState.currentTrip) return;
+
+  if (!appState.currentTrip.waypoints) appState.currentTrip.waypoints = [];
+  if (appState.currentTrip.waypoints.length >= MAX_WAYPOINTS) {
+    showToast(`경유지는 최대 ${MAX_WAYPOINTS}개까지 기록할 수 있어요.`);
+    return;
+  }
+  if (!currentLocation) { showToast('GPS 위치를 파악하는 중입니다.'); return; }
+
+  const loc = await getBestLocation();
+  const addr = await getAddressesFromCoords(loc.lat, loc.lng);
+
+  const trip = appState.currentTrip;
+  const prevPoint = trip.waypoints.length > 0 ? trip.waypoints[trip.waypoints.length - 1] : { lat: trip.startLat, lng: trip.startLng };
+  const legResult = await calculateDistance(prevPoint.lat, prevPoint.lng, loc.lat, loc.lng);
+
+  trip.waypoints.push({
+    id: Date.now(),
+    timestamp: new Date().toISOString(),
+    lat: loc.lat, lng: loc.lng,
+    addrRoad: addr.road, addrJibun: addr.jibun,
+    legDistanceKm: legResult.distanceKm,
+    legEstimated: legResult.estimated
+  });
+
+  saveData();
+  showToast('경유지가 저장됐어요.');
+}
+
+function updateWaypointButtonVisibility() {
+  const wrapper = document.getElementById('waypoint-btn-wrapper');
+  if (!wrapper) return;
+  wrapper.style.display = (appState.isRunning && appState.settings.waypointsEnabled !== false) ? 'flex' : 'none';
 }
 
 function updateMainUI() {
@@ -41,6 +95,7 @@ function updateMainUI() {
   } else {
     btn.classList.remove('is-running'); btnText.innerText = '출발'; btnIcon.setAttribute('data-lucide', 'play'); lucide.createIcons();
   }
+  updateWaypointButtonVisibility();
 
   const today = getKSTDateString();
   const currentMonth = today.substring(0, 7);

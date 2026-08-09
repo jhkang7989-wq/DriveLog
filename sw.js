@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v3'; // index.html을 style.css + js/app-*.js로 분리하면서 버전 올림
+const CACHE_NAME = 'drive-log-v4'; // 경유(waypoint) 기능 추가로 버전 올림
 const ASSETS = [
   './index.html',
   './style.css',

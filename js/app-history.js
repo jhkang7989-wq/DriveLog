@@ -127,12 +127,17 @@ function renderHistory() {
         let sTime = new Date(r.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'});
         let eTime = r.endTime ? new Date(r.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'}) : '진행중';
 
+        const hasWaypoints = r.waypoints && r.waypoints.length > 0;
+
         html += `<div class="swipe-wrapper" data-id="${r.id}">
           <div class="swipe-delete-bg" onclick="deleteRecord(${r.id})"><i data-lucide="trash-2" style="width:18px; height:18px;"></i></div>
-          <div class="timeline-card" data-id="${r.id}">
+          <div class="timeline-card ${hasWaypoints ? 'has-waypoints' : ''}" data-id="${r.id}">
             <div class="card-row-top">
               <span class="card-time">${sTime} ~ ${eTime}</span>
-              <span class="card-distance">${r.distance.toFixed(1)} km</span>
+              <span class="card-distance-group">
+                ${hasWaypoints ? `<span class="waypoint-badge" onclick="event.stopPropagation(); openWaypointModal(${r.id})">경유 ${r.waypoints.length}</span>` : ''}
+                <span class="card-distance">${r.distance.toFixed(1)} km</span>
+              </span>
             </div>
             <div class="card-addr-row"><span class="card-addr-label">출발</span>${formatFullAddress(sAddr)}</div>
             <div class="card-addr-row"><span class="card-addr-label">도착</span>${formatFullAddress(eAddr)}</div>
@@ -307,4 +312,79 @@ function saveEditModal() {
   saveData();
   renderHistory();
   closeEditModal();
+}
+
+/* 경유지 상세 모달 */
+let waypointModalRecordId = null;
+
+function openWaypointModal(id) {
+  triggerHaptic();
+  waypointModalRecordId = id;
+  renderWaypointModal();
+  document.getElementById('waypoint-modal').classList.add('active');
+}
+
+function closeWaypointModal() {
+  document.getElementById('waypoint-modal').classList.remove('active');
+  waypointModalRecordId = null;
+}
+
+function renderWaypointModal() {
+  const r = appState.records.find(x => x.id === waypointModalRecordId);
+  const list = document.getElementById('waypoint-modal-list');
+  if (!r || !r.waypoints || r.waypoints.length === 0) { closeWaypointModal(); return; }
+
+  let html = '';
+  r.waypoints.forEach((w, idx) => {
+    const addr = appState.settings.addressPref === 'road' ? (w.addrRoad || w.addrJibun) : (w.addrJibun || w.addrRoad);
+    const time = new Date(w.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'});
+    html += `<div class="waypoint-item">
+      <div class="waypoint-item-info">
+        <div class="waypoint-item-addr">${formatFullAddress(addr || '(주소 정보 없음)')}</div>
+        <div class="waypoint-item-meta">${time} · 이전 구간 ${w.legDistanceKm.toFixed(1)}km</div>
+      </div>
+      <button class="waypoint-item-delete" onclick="deleteWaypoint(${idx})"><i data-lucide="x"></i></button>
+    </div>`;
+  });
+  list.innerHTML = html;
+  lucide.createIcons();
+}
+
+// 경유지 1개 삭제 시, 그 경유지 양옆 두 지점을 잇는 구간 1개만 새로 계산해서 이어붙임
+// (전체 경로를 통째로 다시 계산하지 않음 — 나머지 구간은 그대로 유지)
+async function deleteWaypoint(idx) {
+  const r = appState.records.find(x => x.id === waypointModalRecordId);
+  if (!r || !r.waypoints) return;
+
+  const ok = await showConfirm('이 경유지를 삭제하시겠습니까?');
+  if (!ok) return;
+
+  showLoading(true, "구간 거리를 다시 계산하고 있습니다...");
+
+  const prevPoint = idx > 0 ? r.waypoints[idx - 1] : { lat: r.startLat, lng: r.startLng };
+  const nextPoint = idx < r.waypoints.length - 1 ? r.waypoints[idx + 1] : { lat: r.endLat, lng: r.endLng };
+  const mergedLeg = await calculateDistance(prevPoint.lat, prevPoint.lng, nextPoint.lat, nextPoint.lng);
+
+  const isLastWaypoint = idx === r.waypoints.length - 1;
+  r.waypoints.splice(idx, 1);
+
+  if (isLastWaypoint) {
+    // 마지막 경유지를 지운 경우 -> 도착까지 이어지는 마지막 구간을 새로 계산
+    r.finalLegKm = mergedLeg.distanceKm;
+    r.finalLegEstimated = mergedLeg.estimated;
+  } else {
+    // 중간 경유지를 지운 경우 -> 삭제된 자리 다음 경유지의 "이전 구간" 거리를 새로 계산한 값으로 교체
+    r.waypoints[idx].legDistanceKm = mergedLeg.distanceKm;
+    r.waypoints[idx].legEstimated = mergedLeg.estimated;
+  }
+
+  const rawTotalKm = r.waypoints.reduce((sum, w) => sum + w.legDistanceKm, 0) + (r.finalLegKm || 0);
+  const anyEstimated = r.waypoints.some(w => w.legEstimated) || r.finalLegEstimated;
+  r.distance = Math.round((rawTotalKm * (1 + (appState.settings.offsetPercent / 100))) * 10) / 10;
+  r.note = anyEstimated ? "⚠️ 거리 추정치(직선거리 기반)" : "";
+
+  saveData();
+  renderWaypointModal();
+  renderHistory();
+  showLoading(false);
 }

@@ -37,6 +37,9 @@
         <i data-lucide="play" id="btn-icon" style="width:56px; height:56px;"></i>
         <span id="btn-text">출발</span>
       </button>
+      <div class="waypoint-btn-wrapper" id="waypoint-btn-wrapper" style="display:none;">
+        <button id="btn-waypoint" class="waypoint-btn" onclick="addWaypoint()">경유</button>
+      </div>
       <div class="current-location">
         <i data-lucide="map-pin" style="width:16px; height:16px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
         <span id="location-text">위치 정보를 파악하고 있습니다...</span>
@@ -169,6 +172,13 @@
           <div class="setting-label"><i data-lucide="gauge"></i> 계기판 오차 (+%)</div>
           <input type="number" id="setting-offset" value="3" onchange="saveSettings()" style="width:60px; text-align:right; background:var(--bg-color); color:var(--text-main); border:1px solid #444; padding:5px; border-radius:8px;">
         </div>
+        <div class="setting-item">
+          <div class="setting-label"><i data-lucide="map-pin-plus"></i> 경유 버튼 표시</div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="setting-waypoints" checked onchange="saveSettings()">
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
     </div>
 
@@ -249,6 +259,18 @@
       </div>
     </div>
   </div>
+
+  <div class="modal-overlay" id="waypoint-modal">
+    <div class="modal-card">
+      <h3 style="margin-bottom:20px;">경유지 상세</h3>
+      <div id="waypoint-modal-list"></div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" onclick="closeWaypointModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
 
   <div class="modal-overlay" id="alert-modal">
     <div class="modal-card">
