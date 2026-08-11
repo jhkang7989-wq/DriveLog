@@ -68,7 +68,9 @@ async function getAddressesFromCoords(lat, lng) {
     let road = "", jibun = "";
     if(data.results && data.results.length > 0) {
       data.results.forEach(res => {
-        const name = res.region.area1.name + " " + res.region.area2.name + " " + res.region.area3.name + " ";
+        // area4 = 리(里) — 동 지역은 비어있고, 리 단위 지역(면 소속)에서만 채워짐
+        const area4 = (res.region.area4 && res.region.area4.name) ? res.region.area4.name + " " : "";
+        const name = res.region.area1.name + " " + res.region.area2.name + " " + res.region.area3.name + " " + area4;
         if(res.name === 'roadaddr') road = name + res.land.name + " " + res.land.number1;
         if(res.name === 'addr') jibun = name + res.land.number1 + (res.land.number2 ? "-"+res.land.number2 : "");
       });

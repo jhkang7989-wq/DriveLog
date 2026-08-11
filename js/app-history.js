@@ -1,6 +1,7 @@
 /* 타임라인 및 엑셀 다운로드 */
 let expandedDates = new Set();
 let historyViewMode = 'detail';
+let hasAutoExpandedHistory = false; // 최초 1회만 최근 날짜를 자동으로 펼침 — 이후 사용자가 직접 접어도 다시 펴지지 않도록
 
 function setHistoryViewMode(mode) {
   triggerHaptic();
@@ -88,9 +89,10 @@ function renderHistory() {
   const grouped = appState.records.reduce((acc, obj) => { if (!acc[obj.date]) acc[obj.date] = []; acc[obj.date].push(obj); return acc; }, {});
   const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
 
-  // 최초 렌더링 시 가장 최근 날짜만 기본으로 펼쳐둠
-  if (expandedDates.size === 0 && sortedDates.length > 0) {
+  // 최초 렌더링 시에만 가장 최근 날짜를 기본으로 펼쳐둠 (그 이후엔 사용자가 접고 펴는 걸 그대로 존중)
+  if (!hasAutoExpandedHistory && sortedDates.length > 0) {
     expandedDates.add(sortedDates[0]);
+    hasAutoExpandedHistory = true;
   }
 
   let html = '';
@@ -169,20 +171,30 @@ function closeOpenSwipeCard() {
 
 function attachSwipeHandlers() {
   document.querySelectorAll('.timeline-card').forEach(card => {
-    let startX = 0, currentX = 0, dragging = false, moved = false;
+    let startX = 0, startY = 0, currentX = 0, dragging = false, moved = false, axisLocked = null; // axisLocked: null(미판정) | 'x'(가로 스와이프) | 'y'(세로 스크롤)
 
-    const onStart = (x) => {
+    const onStart = (x, y) => {
       // 다른 카드가 열려있었다면 이번 카드 조작 시작과 동시에 자동으로 닫기
       if (currentlyOpenSwipeCard && currentlyOpenSwipeCard !== card) {
         closeOpenSwipeCard();
       }
-      startX = x; dragging = true; moved = false; card.style.transition = 'none';
+      startX = x; startY = y; dragging = true; moved = false; axisLocked = null; card.style.transition = 'none';
     };
-    const onMove = (x) => {
+    const onMove = (x, y) => {
       if (!dragging) return;
-      let delta = x - startX;
+      const dx = x - startX;
+      const dy = y - startY;
+
+      // 방향이 뚜렷해지기 전(대각선 초반 움직임)까진 판단 보류 — 목록을 세로로 스크롤하려던 손가락이
+      // 살짝 대각선으로 흔들렸다고 바로 삭제 버튼이 열리는 걸 방지
+      if (axisLocked === null) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        axisLocked = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y';
+      }
+      if (axisLocked === 'y') return; // 세로 스크롤 의도로 판정 -> 카드는 움직이지 않음
+
       // 왼쪽으로만 밀리게 제한 (오른쪽으로는 안 열림), 최대 SWIPE_OPEN_PX 만큼만
-      delta = Math.min(0, Math.max(delta, -SWIPE_OPEN_PX));
+      let delta = Math.min(0, Math.max(dx, -SWIPE_OPEN_PX));
       if (Math.abs(delta) > 5) moved = true;
       currentX = delta;
       card.style.transform = `translateX(${currentX}px)`;
@@ -191,8 +203,8 @@ function attachSwipeHandlers() {
       if (!dragging) return;
       dragging = false;
       card.style.transition = 'transform 0.25s ease';
-      // 절반 이상 밀렸으면 완전히 열어서 고정, 아니면 원위치
-      if (currentX < -SWIPE_OPEN_PX / 2) {
+      // 가로 스와이프로 판정된 상태에서 충분히(65% 이상) 밀렸을 때만 완전히 열어서 고정, 아니면 원위치
+      if (axisLocked === 'x' && currentX < -SWIPE_OPEN_PX * 0.65) {
         card.style.transform = `translateX(-${SWIPE_OPEN_PX}px)`;
         currentlyOpenSwipeCard = card;
       } else {
@@ -201,13 +213,13 @@ function attachSwipeHandlers() {
       }
     };
 
-    card.addEventListener('touchstart', e => onStart(e.touches[0].clientX), { passive: true });
-    card.addEventListener('touchmove', e => onMove(e.touches[0].clientX), { passive: true });
+    card.addEventListener('touchstart', e => onStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    card.addEventListener('touchmove', e => onMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
     card.addEventListener('touchend', onEnd);
 
     // 데스크톱 테스트용 마우스 지원
-    card.addEventListener('mousedown', e => onStart(e.clientX));
-    card.addEventListener('mousemove', e => { if (dragging) onMove(e.clientX); });
+    card.addEventListener('mousedown', e => onStart(e.clientX, e.clientY));
+    card.addEventListener('mousemove', e => { if (dragging) onMove(e.clientX, e.clientY); });
     card.addEventListener('mouseup', onEnd);
     card.addEventListener('mouseleave', () => { if (dragging) onEnd(); });
 

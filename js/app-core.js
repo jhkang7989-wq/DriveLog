@@ -118,7 +118,6 @@ function toggleDarkMode(init = false) {
 function triggerHaptic() { if (appState.settings.haptic && navigator.vibrate) navigator.vibrate(50); }
 
 function switchTab(tabId) {
-  triggerHaptic();
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById(`tab-${tabId}`).classList.add('active');
