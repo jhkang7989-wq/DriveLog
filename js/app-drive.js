@@ -76,6 +76,7 @@ async function addWaypoint() {
   });
 
   saveData();
+  updateWaypointButtonLabel();
   showToast('경유지가 저장됐어요.');
 }
 
@@ -83,6 +84,15 @@ function updateWaypointButtonVisibility() {
   const wrapper = document.getElementById('waypoint-btn-wrapper');
   if (!wrapper) return;
   wrapper.style.display = (appState.isRunning && appState.settings.waypointsEnabled !== false) ? 'flex' : 'none';
+  updateWaypointButtonLabel();
+}
+
+// 운행 중 몇 개를 찍었는지 버튼에서 바로 보이도록 — 상세 모달은 완료된 기록에만 있어 운행 중엔 달리 확인할 방법이 없음
+function updateWaypointButtonLabel() {
+  const btn = document.getElementById('btn-waypoint');
+  if (!btn) return;
+  const count = (appState.currentTrip && appState.currentTrip.waypoints) ? appState.currentTrip.waypoints.length : 0;
+  btn.innerText = count > 0 ? `경유 ${count}` : '경유';
 }
 
 function updateMainUI() {

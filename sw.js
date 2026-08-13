@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v5'; // 스와이프/날짜그룹/진동/주소(리) 버그 수정으로 버전 올림
+const CACHE_NAME = 'drive-log-v6'; // 경유 버튼 숫자표시 + 비고 표시 방식 변경으로 버전 올림
 const ASSETS = [
   './index.html',
   './style.css',

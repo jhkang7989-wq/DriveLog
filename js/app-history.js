@@ -143,7 +143,7 @@ function renderHistory() {
             </div>
             <div class="card-addr-row"><span class="card-addr-label">출발</span>${formatFullAddress(sAddr)}</div>
             <div class="card-addr-row"><span class="card-addr-label">도착</span>${formatFullAddress(eAddr)}</div>
-            ${r.note ? `<div class="card-note-badge">${r.note}</div>` : ''}
+            ${r.note ? (r.note.startsWith('⚠️') ? `<div class="card-note-badge card-note-warning">${r.note}</div>` : `<div class="card-note-badge">비고 : ${r.note}</div>`) : ''}
           </div>
         </div>`;
       });

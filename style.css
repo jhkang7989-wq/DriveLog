@@ -89,7 +89,8 @@ body { background-color: var(--bg-color); color: var(--text-main); overflow-x: h
 .card-distance { font-size: 1rem; font-weight: bold; color: var(--accent-color); }
 .card-addr-row { font-size: 0.76rem; color: #444; margin-top: 3px; line-height: 1.4; }
 .card-addr-label { display: inline-block; width: 34px; font-weight: 700; color: var(--accent-color); font-size: 0.68rem; vertical-align: top; }
-.card-note-badge { font-size: 0.7rem; color: var(--accent-color); margin-top: 2px; }
+.card-note-badge { font-size: 0.7rem; color: var(--text-card); margin-top: 2px; }
+.card-note-badge.card-note-warning { color: var(--accent-color); }
 
 /* 경유지 뱃지 + 표시 카드 좌측 컬러바 */
 .card-distance-group { display: flex; align-items: center; gap: 6px; }
