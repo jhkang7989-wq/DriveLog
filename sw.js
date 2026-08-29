@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v13'; // requestPermission 반환값 자체를 즉시 진단 표시
+const CACHE_NAME = 'drive-log-v14'; // SW 등록에 updateViaCache:'none' 추가 (sw.js 자체가 캐시에 걸려 업데이트 안 되던 문제 수정)
 const ASSETS = [
   './index.html',
   './style.css',
