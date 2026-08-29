@@ -5,16 +5,12 @@ document.addEventListener('contextmenu', e => {
   if (!['INPUT', 'TEXTAREA'].includes(e.target.tagName)) e.preventDefault();
 });
 
-// 서비스워커 등록 — 운행 중 알림(경유 기록 액션 버튼)을 띄우려면 SW 기반 알림 API가 필요해서 등록.
-// 알림의 액션 버튼을 눌렀을 때 sw.js가 postMessage로 알려주면, 앱이 열려있던 창에서 바로 경유지를 기록한다.
+// 서비스워커 등록 (에셋 캐싱 → 오프라인 지원용).
 if ('serviceWorker' in navigator) {
   // updateViaCache: 'none' — sw.js 자체가 크롬의 일반 HTTP 캐시에 걸려서 업데이트 확인할 때마다
-  // 옛날 파일을 계속 보게 되는 문제가 있었음(배포해도 진단 코드가 계속 예전 버전으로 실행됨).
-  // 이 옵션으로 sw.js는 항상 네트워크에서 새로 받아오도록 강제함.
+  // 옛날 파일을 계속 보게 되는 문제가 있었음(배포해도 새 코드가 반영이 안 됨). 이 옵션으로
+  // sw.js는 항상 네트워크에서 새로 받아오도록 강제함.
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(err => console.warn('SW 등록 실패:', err));
-  navigator.serviceWorker.addEventListener('message', event => {
-    if (event.data && event.data.type === 'add-waypoint') addWaypoint();
-  });
 }
 
 // ★ 생성한 Cloudflare 프록시 주소 (반드시 https:// 로 시작해야 합니다)

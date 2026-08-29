@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v15'; // Notification.permission 속성 신뢰 안 하고 localStorage 플래그로 대체
+const CACHE_NAME = 'drive-log-v16'; // 웹 알림 시도 코드 제거(네이티브 알림으로 전환)
 const ASSETS = [
   './index.html',
   './style.css',
@@ -75,25 +75,5 @@ self.addEventListener('activate', event => {
         })
       );
     }).then(() => self.clients.claim())
-  );
-});
-
-// 운행 중 알림의 "경유 기록" 액션 버튼 처리.
-// 앱이 이미 열려있으면(백그라운드 포함) 그 창에 메시지만 보내서 즉시 경유지를 기록하고,
-// 앱이 완전히 꺼져있으면 ?action=waypoint로 새로 열어서 로드 시점에 기록하게 함(NFC의 ?action=toggle과 동일한 패턴).
-self.addEventListener('notificationclick', event => {
-  if (event.action !== 'add-waypoint') return;
-  event.notification.close();
-
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      const client = clientList.find(c => 'focus' in c);
-      if (client) {
-        client.focus();
-        client.postMessage({ type: 'add-waypoint' });
-        return;
-      }
-      return self.clients.openWindow('./index.html?action=waypoint');
-    })
   );
 });

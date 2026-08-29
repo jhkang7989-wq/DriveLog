@@ -2,20 +2,6 @@
 async function toggleDrive() {
   triggerHaptic();
 
-  // 알림 권한 요청은 버튼 탭 직후, 다른 비동기 작업(GPS/주소 조회 등) 전에 바로 해야 함.
-  // 뒤로 미루면(await가 여러 번 지난 뒤 요청하면) 브라우저가 사용자 제스처가 이미 끝났다고 판단해
-  // 권한 프롬프트 자체를 안 띄우고 조용히 'default'로 남겨버리는 문제가 있었음.
-  //
-  // 이 TWA 환경에서는 requestPermission()이 실제로는 'granted'를 반환해도(=사용자가 허용을 누름)
-  // 그 직후 Notification.permission 속성을 다시 읽으면 계속 'default'로 나오는 버그성 동작이 확인됨
-  // (진단으로 실제 확인함). 그래서 그 속성을 다시 믿지 않고, requestPermission()이 실제로 반환한
-  // 값을 localStorage에 직접 기록해서 그걸 신뢰하는 방식으로 우회함.
-  if (!appState.isRunning && appState.settings.waypointsEnabled !== false &&
-      'Notification' in window && localStorage.getItem('notifPermissionGranted') !== 'true') {
-    const result = await Notification.requestPermission();
-    if (result === 'granted') localStorage.setItem('notifPermissionGranted', 'true');
-  }
-
   if (!currentLocation) { await showAlert('GPS 위치를 파악하는 중입니다.'); return; }
 
   showLoading(true, "위치 정보를 처리하고 있습니다...");
@@ -26,7 +12,6 @@ async function toggleDrive() {
     appState.currentTrip = { id: Date.now(), startTime: new Date().toISOString(), startLat: loc.lat, startLng: loc.lng, startAddrRoad: addr.road, startAddrJibun: addr.jibun, waypoints: [] };
     appState.isRunning = true;
     saveData();
-    showTripNotification();
   } else {
     const endAddr = await getAddressesFromCoords(loc.lat, loc.lng);
     const trip = appState.currentTrip;
@@ -54,70 +39,12 @@ async function toggleDrive() {
     appState.isRunning = false;
     appState.currentTrip = null;
     saveData();
-    closeTripNotification();
 
     if (anyEstimated) {
       document.getElementById('location-text').innerHTML = `<span style="color:#FFB74D;">거리 계산 API 오류 발생</span><br>(직선거리 기반으로 추정 계산되었습니다)`;
     }
   }
   showLoading(false);
-}
-
-// 운행 중 알림에 "경유 기록" 액션 버튼을 띄움 — 네비 앱 등 다른 화면 보는 중에도
-// 알림창만 내려서 바로 경유지를 찍을 수 있게 하기 위함 (TWA의 알림 위임 기능 사용, 별도 네이티브 코드 불필요).
-// "경유 버튼 표시" 설정을 꺼둔 경우엔 이 알림도 띄우지 않음 — 화면 버튼과 같은 on/off로 묶어 일관되게 취급.
-// 지정 시간 내 안 끝나면 타임아웃으로 실패 처리 — SW가 응답 없이 계속 대기 상태로 멈추는 경우를 잡아내기 위함
-function withTimeout(promise, ms, label) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error(label + ' 응답없음(' + ms + 'ms 초과)')), ms))
-  ]);
-}
-
-async function showTripNotification() {
-  // TODO(임시 진단용): 원인 확인되면 이 debug 로그/showAlert 블록 지우고 catch의 console.warn만 남길 것
-  const debug = [];
-  showToast('🔧 showTripNotification 진입');
-  try {
-    if (appState.settings.waypointsEnabled === false) { debug.push('경유 설정 꺼짐 → 중단'); return; }
-    if (!('serviceWorker' in navigator) || !('Notification' in window)) { debug.push('SW 또는 Notification API 자체가 없음 → 중단'); return; }
-
-    const regs = await navigator.serviceWorker.getRegistrations();
-    debug.push('등록된 SW 개수: ' + regs.length + (regs[0] ? (' / active=' + !!regs[0].active + ' installing=' + !!regs[0].installing + ' waiting=' + !!regs[0].waiting) : ''));
-
-    // Notification.permission 속성은 이 환경에서 신뢰 불가(진단으로 확인됨) — toggleDrive()에서
-    // requestPermission()의 실제 반환값을 저장해둔 localStorage 플래그만 신뢰한다.
-    const granted = localStorage.getItem('notifPermissionGranted') === 'true';
-    debug.push('권한 허용됨(localStorage 기준): ' + granted);
-    if (!granted) { debug.push('권한 없음 → 중단'); return; }
-
-    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'SW ready');
-    debug.push('SW ready 통과, scope=' + reg.scope);
-    await withTimeout(reg.showNotification('DriveLog 운행 중', {
-      body: '경유지를 기록하려면 아래 버튼을 눌러주세요.',
-      tag: 'drivelog-trip',
-      requireInteraction: true,
-      icon: 'app_icon.png',
-      actions: [{ action: 'add-waypoint', title: '경유 기록' }]
-    }), 5000, 'showNotification');
-    debug.push('showNotification 호출 완료 (에러 없음)');
-  } catch (e) {
-    console.warn('운행 알림 표시 실패:', e);
-    debug.push('예외 발생: ' + e.name + ' - ' + e.message);
-  } finally {
-    await showAlert('[진단]\n' + debug.join('\n'));
-  }
-}
-
-async function closeTripNotification() {
-  if (!('serviceWorker' in navigator)) return;
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    const notifications = await reg.getNotifications({ tag: 'drivelog-trip' });
-    notifications.forEach(n => n.close());
-  } catch (e) {
-    console.warn('운행 알림 닫기 실패:', e);
-  }
 }
 
 const MAX_WAYPOINTS = 5;
