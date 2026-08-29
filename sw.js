@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v16'; // 웹 알림 시도 코드 제거(네이티브 알림으로 전환)
+const CACHE_NAME = 'drive-log-v17'; // 경유 알림 기능 보류, ?action=waypoint 관련 코드 원복
 const ASSETS = [
   './index.html',
   './style.css',

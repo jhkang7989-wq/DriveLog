@@ -71,14 +71,12 @@ function loadData() {
 
   // NFC 단축어 자동 실행 로직 — GPS가 실제로 잡힐 때까지 기다렸다가 실행 (최대 8초)
   const urlParams = new URLSearchParams(window.location.search);
-  const action = urlParams.get('action');
-  if (action === 'toggle' || action === 'waypoint') {
+  if (urlParams.get('action') === 'toggle') {
       // 재실행/중복실행 방지를 위해 URL의 쿼리 파라미터를 즉시 제거
       const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
       window.history.replaceState({path:newUrl}, '', newUrl);
 
-      const isWaypoint = action === 'waypoint';
-      showLoading(true, isWaypoint ? "경유 기록 - GPS 위치 확인 중..." : "NFC 인식됨 - GPS 위치 확인 중...");
+      showLoading(true, "NFC 인식됨 - GPS 위치 확인 중...");
       const maxWaitMs = 8000;
       const checkIntervalMs = 300;
       let waited = 0;
@@ -87,7 +85,7 @@ function loadData() {
         if (currentLocation) {
           clearInterval(waitForGps);
           showLoading(false);
-          if (isWaypoint) addWaypoint(); else toggleDrive();
+          toggleDrive();
         } else {
           waited += checkIntervalMs;
           if (waited >= maxWaitMs) {
