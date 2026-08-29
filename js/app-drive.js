@@ -11,6 +11,7 @@ async function toggleDrive() {
     appState.currentTrip = { id: Date.now(), startTime: new Date().toISOString(), startLat: loc.lat, startLng: loc.lng, startAddrRoad: addr.road, startAddrJibun: addr.jibun, waypoints: [] };
     appState.isRunning = true;
     saveData();
+    showTripNotification();
   } else {
     const endAddr = await getAddressesFromCoords(loc.lat, loc.lng);
     const trip = appState.currentTrip;
@@ -38,12 +39,47 @@ async function toggleDrive() {
     appState.isRunning = false;
     appState.currentTrip = null;
     saveData();
+    closeTripNotification();
 
     if (anyEstimated) {
       document.getElementById('location-text').innerHTML = `<span style="color:#FFB74D;">거리 계산 API 오류 발생</span><br>(직선거리 기반으로 추정 계산되었습니다)`;
     }
   }
   showLoading(false);
+}
+
+// 운행 중 알림에 "경유 기록" 액션 버튼을 띄움 — 네비 앱 등 다른 화면 보는 중에도
+// 알림창만 내려서 바로 경유지를 찍을 수 있게 하기 위함 (TWA의 알림 위임 기능 사용, 별도 네이티브 코드 불필요).
+// "경유 버튼 표시" 설정을 꺼둔 경우엔 이 알림도 띄우지 않음 — 화면 버튼과 같은 on/off로 묶어 일관되게 취급.
+async function showTripNotification() {
+  if (appState.settings.waypointsEnabled === false) return;
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+  try {
+    if (Notification.permission === 'default') await Notification.requestPermission();
+    if (Notification.permission !== 'granted') return;
+
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification('DriveLog 운행 중', {
+      body: '경유지를 기록하려면 아래 버튼을 눌러주세요.',
+      tag: 'drivelog-trip',
+      requireInteraction: true,
+      icon: 'app_icon.png',
+      actions: [{ action: 'add-waypoint', title: '경유 기록' }]
+    });
+  } catch (e) {
+    console.warn('운행 알림 표시 실패:', e);
+  }
+}
+
+async function closeTripNotification() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const notifications = await reg.getNotifications({ tag: 'drivelog-trip' });
+    notifications.forEach(n => n.close());
+  } catch (e) {
+    console.warn('운행 알림 닫기 실패:', e);
+  }
 }
 
 const MAX_WAYPOINTS = 5;

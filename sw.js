@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v7'; // 대기화면 주소 자동 갱신 + API 응답 지연 시 타임아웃 처리 추가로 버전 올림
+const CACHE_NAME = 'drive-log-v8'; // 경유 알림(Notification Delegation) 액션 버튼 추가로 버전 올림
 const ASSETS = [
   './index.html',
   './style.css',
@@ -75,5 +75,25 @@ self.addEventListener('activate', event => {
         })
       );
     }).then(() => self.clients.claim())
+  );
+});
+
+// 운행 중 알림의 "경유 기록" 액션 버튼 처리.
+// 앱이 이미 열려있으면(백그라운드 포함) 그 창에 메시지만 보내서 즉시 경유지를 기록하고,
+// 앱이 완전히 꺼져있으면 ?action=waypoint로 새로 열어서 로드 시점에 기록하게 함(NFC의 ?action=toggle과 동일한 패턴).
+self.addEventListener('notificationclick', event => {
+  if (event.action !== 'add-waypoint') return;
+  event.notification.close();
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      const client = clientList.find(c => 'focus' in c);
+      if (client) {
+        client.focus();
+        client.postMessage({ type: 'add-waypoint' });
+        return;
+      }
+      return self.clients.openWindow('./index.html?action=waypoint');
+    })
   );
 });

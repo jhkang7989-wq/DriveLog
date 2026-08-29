@@ -5,6 +5,15 @@ document.addEventListener('contextmenu', e => {
   if (!['INPUT', 'TEXTAREA'].includes(e.target.tagName)) e.preventDefault();
 });
 
+// 서비스워커 등록 — 운행 중 알림(경유 기록 액션 버튼)을 띄우려면 SW 기반 알림 API가 필요해서 등록.
+// 알림의 액션 버튼을 눌렀을 때 sw.js가 postMessage로 알려주면, 앱이 열려있던 창에서 바로 경유지를 기록한다.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW 등록 실패:', err));
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'add-waypoint') addWaypoint();
+  });
+}
+
 // ★ 생성한 Cloudflare 프록시 주소 (반드시 https:// 로 시작해야 합니다)
 const PROXY_URL = "https://drivelog-proxy.jhkang7989.workers.dev";
 
@@ -63,12 +72,14 @@ function loadData() {
 
   // NFC 단축어 자동 실행 로직 — GPS가 실제로 잡힐 때까지 기다렸다가 실행 (최대 8초)
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('action') === 'toggle') {
+  const action = urlParams.get('action');
+  if (action === 'toggle' || action === 'waypoint') {
       // 재실행/중복실행 방지를 위해 URL의 쿼리 파라미터를 즉시 제거
       const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
       window.history.replaceState({path:newUrl}, '', newUrl);
 
-      showLoading(true, "NFC 인식됨 - GPS 위치 확인 중...");
+      const isWaypoint = action === 'waypoint';
+      showLoading(true, isWaypoint ? "경유 기록 - GPS 위치 확인 중..." : "NFC 인식됨 - GPS 위치 확인 중...");
       const maxWaitMs = 8000;
       const checkIntervalMs = 300;
       let waited = 0;
@@ -77,7 +88,7 @@ function loadData() {
         if (currentLocation) {
           clearInterval(waitForGps);
           showLoading(false);
-          toggleDrive();
+          if (isWaypoint) addWaypoint(); else toggleDrive();
         } else {
           waited += checkIntervalMs;
           if (waited >= maxWaitMs) {
