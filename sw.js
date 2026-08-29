@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v14'; // SW 등록에 updateViaCache:'none' 추가 (sw.js 자체가 캐시에 걸려 업데이트 안 되던 문제 수정)
+const CACHE_NAME = 'drive-log-v15'; // Notification.permission 속성 신뢰 안 하고 localStorage 플래그로 대체
 const ASSETS = [
   './index.html',
   './style.css',

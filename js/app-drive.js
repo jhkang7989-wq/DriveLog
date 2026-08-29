@@ -5,10 +5,15 @@ async function toggleDrive() {
   // 알림 권한 요청은 버튼 탭 직후, 다른 비동기 작업(GPS/주소 조회 등) 전에 바로 해야 함.
   // 뒤로 미루면(await가 여러 번 지난 뒤 요청하면) 브라우저가 사용자 제스처가 이미 끝났다고 판단해
   // 권한 프롬프트 자체를 안 띄우고 조용히 'default'로 남겨버리는 문제가 있었음.
+  //
+  // 이 TWA 환경에서는 requestPermission()이 실제로는 'granted'를 반환해도(=사용자가 허용을 누름)
+  // 그 직후 Notification.permission 속성을 다시 읽으면 계속 'default'로 나오는 버그성 동작이 확인됨
+  // (진단으로 실제 확인함). 그래서 그 속성을 다시 믿지 않고, requestPermission()이 실제로 반환한
+  // 값을 localStorage에 직접 기록해서 그걸 신뢰하는 방식으로 우회함.
   if (!appState.isRunning && appState.settings.waypointsEnabled !== false &&
-      'Notification' in window && Notification.permission === 'default') {
+      'Notification' in window && localStorage.getItem('notifPermissionGranted') !== 'true') {
     const result = await Notification.requestPermission();
-    await showAlert('[진단] requestPermission() 반환값: ' + result + '\n직후 Notification.permission: ' + Notification.permission); // TODO 임시 진단, 확인되면 삭제
+    if (result === 'granted') localStorage.setItem('notifPermissionGranted', 'true');
   }
 
   if (!currentLocation) { await showAlert('GPS 위치를 파악하는 중입니다.'); return; }
@@ -80,10 +85,11 @@ async function showTripNotification() {
     const regs = await navigator.serviceWorker.getRegistrations();
     debug.push('등록된 SW 개수: ' + regs.length + (regs[0] ? (' / active=' + !!regs[0].active + ' installing=' + !!regs[0].installing + ' waiting=' + !!regs[0].waiting) : ''));
 
-    debug.push('진입 전 권한: ' + Notification.permission);
-    if (Notification.permission === 'default') await Notification.requestPermission();
-    debug.push('요청 후 권한: ' + Notification.permission);
-    if (Notification.permission !== 'granted') { debug.push('권한 미허용 → 중단'); return; }
+    // Notification.permission 속성은 이 환경에서 신뢰 불가(진단으로 확인됨) — toggleDrive()에서
+    // requestPermission()의 실제 반환값을 저장해둔 localStorage 플래그만 신뢰한다.
+    const granted = localStorage.getItem('notifPermissionGranted') === 'true';
+    debug.push('권한 허용됨(localStorage 기준): ' + granted);
+    if (!granted) { debug.push('권한 없음 → 중단'); return; }
 
     const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'SW ready');
     debug.push('SW ready 통과, scope=' + reg.scope);
