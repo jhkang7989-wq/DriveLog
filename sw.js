@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v11'; // 배포해도 크롬 일반 HTTP 캐시 때문에 JS/CSS가 안 갱신되는 문제 발견 — index.html에 ?v= 캐시버스팅 추가하며 버전 올림
+const CACHE_NAME = 'drive-log-v12'; // 알림 권한 요청을 클릭 직후로 앞당김 (제스처 만료 문제 수정)
 const ASSETS = [
   './index.html',
   './style.css',

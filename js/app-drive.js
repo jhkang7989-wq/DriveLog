@@ -1,6 +1,15 @@
 /* 운행 로직 */
 async function toggleDrive() {
   triggerHaptic();
+
+  // 알림 권한 요청은 버튼 탭 직후, 다른 비동기 작업(GPS/주소 조회 등) 전에 바로 해야 함.
+  // 뒤로 미루면(await가 여러 번 지난 뒤 요청하면) 브라우저가 사용자 제스처가 이미 끝났다고 판단해
+  // 권한 프롬프트 자체를 안 띄우고 조용히 'default'로 남겨버리는 문제가 있었음.
+  if (!appState.isRunning && appState.settings.waypointsEnabled !== false &&
+      'Notification' in window && Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+
   if (!currentLocation) { await showAlert('GPS 위치를 파악하는 중입니다.'); return; }
 
   showLoading(true, "위치 정보를 처리하고 있습니다...");
