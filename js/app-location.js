@@ -1,5 +1,7 @@
 /* GPS 제어 */
 let currentLocation = null;
+let lastAddressFetchLoc = null;
+let lastAddressFetchTime = 0;
 navigator.geolocation.watchPosition(
   (pos) => {
     currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
@@ -9,8 +11,17 @@ navigator.geolocation.watchPosition(
     dot.className = 'gps-dot ' + (acc < 30 ? 'green' : acc < 100 ? 'yellow' : 'red');
     txt.innerText = acc < 30 ? 'GPS 매우좋음' : acc < 100 ? 'GPS 양호' : 'GPS 약함';
 
-    if(!appState.isRunning && document.getElementById('location-text').innerText.includes('파악')) {
-      fetchAndDisplayAddress(currentLocation.lat, currentLocation.lng);
+    if(!appState.isRunning) {
+      const isInitial = document.getElementById('location-text').innerText.includes('파악');
+      // 최초 1회 표시 후에도, 50m 이상 이동했고 마지막 조회로부터 5초 이상 지났으면 주소를 다시 갱신
+      const movedFar = lastAddressFetchLoc &&
+        getDistanceFromLatLonInKm(lastAddressFetchLoc.lat, lastAddressFetchLoc.lng, currentLocation.lat, currentLocation.lng) > 0.05;
+      const cooledDown = Date.now() - lastAddressFetchTime > 5000;
+      if (isInitial || (movedFar && cooledDown)) {
+        lastAddressFetchLoc = { lat: currentLocation.lat, lng: currentLocation.lng };
+        lastAddressFetchTime = Date.now();
+        fetchAndDisplayAddress(currentLocation.lat, currentLocation.lng);
+      }
     }
   },
   (err) => {
@@ -50,6 +61,13 @@ function getBestLocation(maxWaitMs = 1800, goodAccuracyThreshold = 15) {
   });
 }
 
+// 지정 시간 내 응답이 없으면 요청을 중단 — 프록시/네이버 API가 지연될 때 "위치 정보를 파악하고 있습니다" 화면에서 무한정 멈추는 것 방지
+function fetchWithTimeout(url, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 /* API 호출 로직 (Cloudflare 프록시 서버 경유) */
 async function getAddressesFromCoords(lat, lng) {
   if (!navigator.onLine) return { road: `오프라인(위도:${lat.toFixed(4)})`, jibun: `오프라인(경도:${lng.toFixed(4)})` };
@@ -57,7 +75,7 @@ async function getAddressesFromCoords(lat, lng) {
   try {
     // 진짜 목표 주소를 프록시 서버에 ?target= 형태로 넘김
     const targetUrl = encodeURIComponent(`https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&orders=addr,roadaddr&output=json`);
-    const response = await fetch(`${PROXY_URL}/?target=${targetUrl}`);
+    const response = await fetchWithTimeout(`${PROXY_URL}/?target=${targetUrl}`);
 
     if (!response.ok) {
       console.warn(`주소 변환 API 실패 (status ${response.status})`);
@@ -96,7 +114,7 @@ async function calculateDistance(startLat, startLng, endLat, endLng) {
 
   try {
     const targetUrl = encodeURIComponent(`https://maps.apigw.ntruss.com/map-direction/v1/driving?start=${startLng},${startLat}&goal=${endLng},${endLat}`);
-    const response = await fetch(`${PROXY_URL}/?target=${targetUrl}`);
+    const response = await fetchWithTimeout(`${PROXY_URL}/?target=${targetUrl}`);
 
     if (!response.ok) {
       console.warn(`거리 계산 API 실패 (status ${response.status}) - 직선거리로 대체`);

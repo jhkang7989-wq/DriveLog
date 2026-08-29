@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v6'; // 경유 버튼 숫자표시 + 비고 표시 방식 변경으로 버전 올림
+const CACHE_NAME = 'drive-log-v7'; // 대기화면 주소 자동 갱신 + API 응답 지연 시 타임아웃 처리 추가로 버전 올림
 const ASSETS = [
   './index.html',
   './style.css',
