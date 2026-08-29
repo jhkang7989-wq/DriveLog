@@ -52,13 +52,19 @@ async function toggleDrive() {
 // 알림창만 내려서 바로 경유지를 찍을 수 있게 하기 위함 (TWA의 알림 위임 기능 사용, 별도 네이티브 코드 불필요).
 // "경유 버튼 표시" 설정을 꺼둔 경우엔 이 알림도 띄우지 않음 — 화면 버튼과 같은 on/off로 묶어 일관되게 취급.
 async function showTripNotification() {
-  if (appState.settings.waypointsEnabled === false) return;
-  if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+  // TODO(임시 진단용): 원인 확인되면 이 debug 로그/showAlert 블록 지우고 catch의 console.warn만 남길 것
+  const debug = [];
   try {
+    if (appState.settings.waypointsEnabled === false) { debug.push('경유 설정 꺼짐 → 중단'); return; }
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) { debug.push('SW 또는 Notification API 자체가 없음 → 중단'); return; }
+
+    debug.push('진입 전 권한: ' + Notification.permission);
     if (Notification.permission === 'default') await Notification.requestPermission();
-    if (Notification.permission !== 'granted') return;
+    debug.push('요청 후 권한: ' + Notification.permission);
+    if (Notification.permission !== 'granted') { debug.push('권한 미허용 → 중단'); return; }
 
     const reg = await navigator.serviceWorker.ready;
+    debug.push('SW ready 통과, scope=' + reg.scope);
     await reg.showNotification('DriveLog 운행 중', {
       body: '경유지를 기록하려면 아래 버튼을 눌러주세요.',
       tag: 'drivelog-trip',
@@ -66,8 +72,12 @@ async function showTripNotification() {
       icon: 'app_icon.png',
       actions: [{ action: 'add-waypoint', title: '경유 기록' }]
     });
+    debug.push('showNotification 호출 완료 (에러 없음)');
   } catch (e) {
     console.warn('운행 알림 표시 실패:', e);
+    debug.push('예외 발생: ' + e.name + ' - ' + e.message);
+  } finally {
+    await showAlert('[진단]\n' + debug.join('\n'));
   }
 }
 

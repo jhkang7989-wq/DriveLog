@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v8'; // 경유 알림(Notification Delegation) 액션 버튼 추가로 버전 올림
+const CACHE_NAME = 'drive-log-v9'; // 진단용 임시 로그 추가로 버전 올림
 const ASSETS = [
   './index.html',
   './style.css',
