@@ -7,7 +7,8 @@ async function toggleDrive() {
   // 권한 프롬프트 자체를 안 띄우고 조용히 'default'로 남겨버리는 문제가 있었음.
   if (!appState.isRunning && appState.settings.waypointsEnabled !== false &&
       'Notification' in window && Notification.permission === 'default') {
-    await Notification.requestPermission();
+    const result = await Notification.requestPermission();
+    await showAlert('[진단] requestPermission() 반환값: ' + result + '\n직후 Notification.permission: ' + Notification.permission); // TODO 임시 진단, 확인되면 삭제
   }
 
   if (!currentLocation) { await showAlert('GPS 위치를 파악하는 중입니다.'); return; }

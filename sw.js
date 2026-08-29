@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v12'; // 알림 권한 요청을 클릭 직후로 앞당김 (제스처 만료 문제 수정)
+const CACHE_NAME = 'drive-log-v13'; // requestPermission 반환값 자체를 즉시 진단 표시
 const ASSETS = [
   './index.html',
   './style.css',
