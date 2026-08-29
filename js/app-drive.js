@@ -51,27 +51,39 @@ async function toggleDrive() {
 // 운행 중 알림에 "경유 기록" 액션 버튼을 띄움 — 네비 앱 등 다른 화면 보는 중에도
 // 알림창만 내려서 바로 경유지를 찍을 수 있게 하기 위함 (TWA의 알림 위임 기능 사용, 별도 네이티브 코드 불필요).
 // "경유 버튼 표시" 설정을 꺼둔 경우엔 이 알림도 띄우지 않음 — 화면 버튼과 같은 on/off로 묶어 일관되게 취급.
+// 지정 시간 내 안 끝나면 타임아웃으로 실패 처리 — SW가 응답 없이 계속 대기 상태로 멈추는 경우를 잡아내기 위함
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(label + ' 응답없음(' + ms + 'ms 초과)')), ms))
+  ]);
+}
+
 async function showTripNotification() {
   // TODO(임시 진단용): 원인 확인되면 이 debug 로그/showAlert 블록 지우고 catch의 console.warn만 남길 것
   const debug = [];
+  showToast('🔧 showTripNotification 진입');
   try {
     if (appState.settings.waypointsEnabled === false) { debug.push('경유 설정 꺼짐 → 중단'); return; }
     if (!('serviceWorker' in navigator) || !('Notification' in window)) { debug.push('SW 또는 Notification API 자체가 없음 → 중단'); return; }
+
+    const regs = await navigator.serviceWorker.getRegistrations();
+    debug.push('등록된 SW 개수: ' + regs.length + (regs[0] ? (' / active=' + !!regs[0].active + ' installing=' + !!regs[0].installing + ' waiting=' + !!regs[0].waiting) : ''));
 
     debug.push('진입 전 권한: ' + Notification.permission);
     if (Notification.permission === 'default') await Notification.requestPermission();
     debug.push('요청 후 권한: ' + Notification.permission);
     if (Notification.permission !== 'granted') { debug.push('권한 미허용 → 중단'); return; }
 
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'SW ready');
     debug.push('SW ready 통과, scope=' + reg.scope);
-    await reg.showNotification('DriveLog 운행 중', {
+    await withTimeout(reg.showNotification('DriveLog 운행 중', {
       body: '경유지를 기록하려면 아래 버튼을 눌러주세요.',
       tag: 'drivelog-trip',
       requireInteraction: true,
       icon: 'app_icon.png',
       actions: [{ action: 'add-waypoint', title: '경유 기록' }]
-    });
+    }), 5000, 'showNotification');
     debug.push('showNotification 호출 완료 (에러 없음)');
   } catch (e) {
     console.warn('운행 알림 표시 실패:', e);

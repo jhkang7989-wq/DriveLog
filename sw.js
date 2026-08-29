@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v9'; // 진단용 임시 로그 추가로 버전 올림
+const CACHE_NAME = 'drive-log-v10'; // 진단용 타임아웃 추가로 버전 올림
 const ASSETS = [
   './index.html',
   './style.css',
