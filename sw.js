@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v19'; // 내역 화면 날짜 옆 요일 표시(주말 색 구분) 추가
+const CACHE_NAME = 'drive-log-v20'; // 주말 요일 색상 톤 다운
 const ASSETS = [
   './index.html',
   './style.css',
