@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v21'; // 핀치줌 차단(touch-action) + 주말 색상 재조정
+const CACHE_NAME = 'drive-log-v22'; // touch-action 값 수정 (manipulation→pan-x pan-y, 핀치줌 진짜로 차단)
 const ASSETS = [
   './index.html',
   './style.css',
