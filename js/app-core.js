@@ -5,6 +5,20 @@ document.addEventListener('contextmenu', e => {
   if (!['INPUT', 'TEXTAREA'].includes(e.target.tagName)) e.preventDefault();
 });
 
+// 핀치줌/더블탭줌 차단 — 뷰포트 메타태그(user-scalable=no)나 CSS(touch-action)가
+// TWA(크롬 Custom Tabs) 환경에서는 무시되는 것이 확인되어, 터치 이벤트 자체를 막는
+// 더 확실한 방식으로 처리함(PWA/일반 브라우저에서도 동일하게 동작).
+document.addEventListener('touchstart', e => {
+  if (e.touches.length > 1) e.preventDefault(); // 두 손가락 이상 터치(핀치) 자체를 차단
+}, { passive: false });
+
+let lastTouchEnd = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) e.preventDefault(); // 더블탭 줌 차단
+  lastTouchEnd = now;
+}, false);
+
 // 서비스워커 등록 (에셋 캐싱 → 오프라인 지원용).
 if ('serviceWorker' in navigator) {
   // updateViaCache: 'none' — sw.js 자체가 크롬의 일반 HTTP 캐시에 걸려서 업데이트 확인할 때마다

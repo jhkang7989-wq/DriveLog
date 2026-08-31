@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v23'; // html에도 touch-action 추가, 주말 색상 재조정
+const CACHE_NAME = 'drive-log-v24'; // 핀치줌을 터치 이벤트 가로채기로 확실히 차단
 const ASSETS = [
   './index.html',
   './style.css',
