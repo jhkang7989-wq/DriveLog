@@ -76,6 +76,17 @@ function loadData() {
       const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
       window.history.replaceState({path:newUrl}, '', newUrl);
 
+      // 크롬이 백그라운드에서 프로세스를 정리했다가 나중에 "예전에 열려있던 페이지"를 복원할 때,
+      // 하필 그게 ?action=toggle이 붙은 NFC URL이었다면 NFC를 안 찍었는데도 자동으로 출발/도착이
+      // 재실행되는 문제가 있었음. 진짜 외부(NFC 태그)에서 새로 연 경우는 navigation type이
+      // 'navigate'이고, 복원/새로고침은 'reload'나 'back_forward'로 구분되므로 이걸로 걸러낸다.
+      const navEntries = performance.getEntriesByType('navigation');
+      const navType = navEntries.length > 0 ? navEntries[0].type : 'navigate';
+      if (navType !== 'navigate') {
+        console.warn(`NFC 자동실행 무시됨 (복원된 탐색으로 판단, navigation type=${navType})`);
+        return;
+      }
+
       showLoading(true, "NFC 인식됨 - GPS 위치 확인 중...");
       const maxWaitMs = 8000;
       const checkIntervalMs = 300;

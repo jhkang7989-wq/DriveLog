@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v17'; // 경유 알림 기능 보류, ?action=waypoint 관련 코드 원복
+const CACHE_NAME = 'drive-log-v18'; // NFC 없이 저절로 출발되는 버그 수정 (탐색 복원 시 ?action=toggle 재실행 방지)
 const ASSETS = [
   './index.html',
   './style.css',
@@ -44,14 +44,19 @@ self.addEventListener('fetch', event => {
   // 네트워크를 우선 시도해서 항상 최신 버전을 받아오고, 오프라인일 때만 캐시로 폴백함.
   const isHtmlRequest = req.mode === 'navigate' || req.url.endsWith('index.html') || req.url.endsWith('/');
   if (isHtmlRequest) {
+    // 캐시 키는 쿼리스트링(?action=toggle 등) 없이 항상 index.html 기준으로 고정.
+    // NFC용 ?action=toggle이 붙은 URL을 그대로 캐시 키로 쓰면, 나중에 오프라인 폴백이나
+    // 브라우저의 탐색 기록 복원 시 그 URL이 다시 열리면서 NFC를 안 찍었는데도 출발/도착이
+    // 저절로 실행되는 문제가 있었음.
+    const cacheKey = new Request(new URL('./index.html', req.url).toString());
     event.respondWith(
       fetch(req)
         .then(res => {
           const resClone = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(req, resClone));
+          caches.open(CACHE_NAME).then(cache => cache.put(cacheKey, resClone));
           return res;
         })
-        .catch(() => caches.match(req))
+        .catch(() => caches.match(cacheKey))
     );
     return;
   }
