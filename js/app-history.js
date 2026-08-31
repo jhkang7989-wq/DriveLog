@@ -101,8 +101,10 @@ function renderHistory() {
     const dailyTotal = chronological.reduce((sum, r) => sum + r.distance, 0).toFixed(1);
     const isExpanded = expandedDates.has(date);
 
+    const weekdayColor = getWeekdayColor(date);
+    const weekdaySpan = weekdayColor ? `<span style="color:${weekdayColor};">(${getWeekdayKo(date)})</span>` : `(${getWeekdayKo(date)})`;
     html += `<div class="card-date ${isExpanded ? '' : 'collapsed'}" onclick="toggleDateGroup('${date}')">
-      <span>${date}</span>
+      <span>${date} ${weekdaySpan}</span>
       <span class="card-date-right">
         <span class="card-date-total">${dailyTotal} km</span>
         <i data-lucide="chevron-down" class="date-chevron"></i>

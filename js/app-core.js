@@ -165,3 +165,18 @@ function showToast(message, duration = 1800) {
 function getKSTDateString(date = new Date()) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 }
+
+// "YYYY-MM-DD" 문자열을 한글 요일 한 글자로 변환 — 정오(12:00) KST로 고정 해석해서
+// 기기 시간대에 따라 하루 밀리는 문제(getKSTDateString과 동일한 이유) 방지
+function getWeekdayKo(dateString) {
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  return days[new Date(`${dateString}T12:00:00+09:00`).getDay()];
+}
+
+// 주말 색 구분 — 토요일 파랑, 일요일 빨강, 평일은 null(기본 텍스트색 유지)
+function getWeekdayColor(dateString) {
+  const day = new Date(`${dateString}T12:00:00+09:00`).getDay();
+  if (day === 0) return '#E53935';
+  if (day === 6) return '#4A90D9';
+  return null;
+}

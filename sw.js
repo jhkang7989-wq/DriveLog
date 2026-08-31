@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v18'; // NFC 없이 저절로 출발되는 버그 수정 (탐색 복원 시 ?action=toggle 재실행 방지)
+const CACHE_NAME = 'drive-log-v19'; // 내역 화면 날짜 옆 요일 표시(주말 색 구분) 추가
 const ASSETS = [
   './index.html',
   './style.css',
