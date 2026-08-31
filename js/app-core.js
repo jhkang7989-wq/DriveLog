@@ -176,7 +176,7 @@ function getWeekdayKo(dateString) {
 // 주말 색 구분 — 토요일 블루, 일요일 로즈(둘 다 톤 다운), 평일은 null(기본 텍스트색 유지)
 function getWeekdayColor(dateString) {
   const day = new Date(`${dateString}T12:00:00+09:00`).getDay();
-  if (day === 0) return '#D16D6D';
-  if (day === 6) return '#6C9ACC';
+  if (day === 0) return '#D66060';
+  if (day === 6) return '#6498CF';
   return null;
 }
