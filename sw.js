@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v20'; // 주말 요일 색상 톤 다운
+const CACHE_NAME = 'drive-log-v21'; // 핀치줌 차단(touch-action) + 주말 색상 재조정
 const ASSETS = [
   './index.html',
   './style.css',

@@ -29,7 +29,7 @@ input, textarea {
   user-select: text;
 }
 
-body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s, color 0.3s; overscroll-behavior-y: none; }
+body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s, color 0.3s; overscroll-behavior-y: none; touch-action: manipulation; }
 
 #app { max-width: 480px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; position: relative; }
 
