@@ -4,11 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>DriveLog</title>
+  <script>
+    // ?action=toggle(NFC용) 처리 전, 가능한 한 가장 이른 시점에 URL에서 지워버림.
+    // 원래는 window.onload 시점(다른 스크립트 다 로드된 뒤)에 지웠는데, 그사이 안드로이드가
+    // 프로세스를 죽이면 URL이 지워지기 전 상태로 남아있다가 나중에 복원되면서 NFC를 안 찍었는데도
+    // 저절로 재실행되는 문제가 있었음. 이 지점(head 맨 앞, 다른 리소스 로딩 전)에서 바로 지우면
+    // 그 틈이 사실상 없어짐 — 대신 실행할 액션은 window.__pendingAction에 담아뒀다가
+    // app-core.js의 loadData()에서 꺼내 쓴다.
+    (function () {
+      const params = new URLSearchParams(location.search);
+      const action = params.get('action');
+      if (action) {
+        window.__pendingAction = action;
+        const cleanUrl = location.protocol + '//' + location.host + location.pathname;
+        history.replaceState({ path: cleanUrl }, '', cleanUrl);
+      }
+    })();
+  </script>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1E1E1E">
   
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="style.css?v=26">
+  <link rel="stylesheet" href="style.css?v=27">
 
 </head>
 <body>
@@ -280,10 +297,10 @@
   </div>
 </div>
 
-<script src="js/app-core.js?v=26"></script>
-<script src="js/app-location.js?v=26"></script>
-<script src="js/app-drive.js?v=26"></script>
-<script src="js/app-history.js?v=26"></script>
-<script src="js/app-data.js?v=26"></script>
+<script src="js/app-core.js?v=27"></script>
+<script src="js/app-location.js?v=27"></script>
+<script src="js/app-drive.js?v=27"></script>
+<script src="js/app-history.js?v=27"></script>
+<script src="js/app-data.js?v=27"></script>
 </body>
 </html>

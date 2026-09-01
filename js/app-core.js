@@ -84,12 +84,11 @@ function loadData() {
   updateMainUI();
 
   // NFC 단축어 자동 실행 로직 — GPS가 실제로 잡힐 때까지 기다렸다가 실행 (최대 8초)
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('action') === 'toggle') {
-      // 재실행/중복실행 방지를 위해 URL의 쿼리 파라미터를 즉시 제거
-      const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-      window.history.replaceState({path:newUrl}, '', newUrl);
-
+  // URL의 ?action=toggle은 index.html 맨 위 인라인 스크립트에서 이미 훨씬 이른 시점에
+  // 지워졌고, 그때 window.__pendingAction에 담아둔 값을 여기서 꺼내 쓴다 (자세한 이유는
+  // 그 스크립트의 주석 참고 — 프로세스가 죽었다 복원될 때 저절로 재실행되는 문제 방지).
+  if (window.__pendingAction === 'toggle') {
+      window.__pendingAction = null;
       showLoading(true, "NFC 인식됨 - GPS 위치 확인 중...");
       const maxWaitMs = 8000;
       const checkIntervalMs = 300;

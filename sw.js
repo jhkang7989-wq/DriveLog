@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v26'; // NFC 자동실행 막던 복원 감지 로직 되돌림
+const CACHE_NAME = 'drive-log-v27'; // ?action= 조기 제거로 자동실행 버그 근본 수정 (NFC 영향 없음)
 const ASSETS = [
   './index.html',
   './style.css',
