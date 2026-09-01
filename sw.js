@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v24'; // 핀치줌을 터치 이벤트 가로채기로 확실히 차단
+const CACHE_NAME = 'drive-log-v25'; // 경유지 최대 개수 5→10 상향
 const ASSETS = [
   './index.html',
   './style.css',

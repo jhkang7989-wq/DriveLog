@@ -47,7 +47,7 @@ async function toggleDrive() {
   showLoading(false);
 }
 
-const MAX_WAYPOINTS = 5;
+const MAX_WAYPOINTS = 10;
 
 async function addWaypoint() {
   triggerHaptic();
