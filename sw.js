@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v25'; // 경유지 최대 개수 5→10 상향
+const CACHE_NAME = 'drive-log-v26'; // NFC 자동실행 막던 복원 감지 로직 되돌림
 const ASSETS = [
   './index.html',
   './style.css',
