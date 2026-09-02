@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v32'; // 일지용 요약에서 경유지로 지역이 바뀌면 구간을 나눠서 표시
+const CACHE_NAME = 'drive-log-v33'; // 경유지 최대 기록 개수 10 -> 30 상향
 const ASSETS = [
   './index.html',
   './style.css',

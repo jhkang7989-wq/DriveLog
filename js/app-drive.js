@@ -53,7 +53,7 @@ async function toggleDrive() {
   showLoading(false);
 }
 
-const MAX_WAYPOINTS = 10;
+const MAX_WAYPOINTS = 30;
 
 // 실제 경유지 등록 로직 — 화면의 "경유" 버튼(addWaypoint)과 DriveLogPro의 백그라운드 자동 정차
 // 감지(drainPendingNativeWaypoints) 양쪽에서 공유해서 쓴다. silent면 최대개수 초과 안내 외의
