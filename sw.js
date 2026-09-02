@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v28'; // DriveLogPro용 네이티브 브릿지 감지 훅 추가 (TWA/PWA엔 영향 없음)
+const CACHE_NAME = 'drive-log-v29'; // 출발/도착 시 네이티브 추적 서비스 시작/종료 호출 연결
 const ASSETS = [
   './index.html',
   './style.css',

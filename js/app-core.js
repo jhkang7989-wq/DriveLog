@@ -19,6 +19,14 @@ document.addEventListener('touchend', e => {
   lastTouchEnd = now;
 }, false);
 
+// DriveLogPro(네이티브 웹뷰 앱)에서만 window.AndroidBridge가 존재함 — 기존 DriveLog(TWA)나
+// 일반 브라우저에서는 이 함수가 그냥 아무 일도 안 하고 조용히 넘어간다(안전한 기능 감지).
+function callNativeBridge(methodName, ...args) {
+  if (window.AndroidBridge && typeof window.AndroidBridge[methodName] === 'function') {
+    window.AndroidBridge[methodName](...args);
+  }
+}
+
 // DriveLogPro(네이티브 웹뷰 앱)에서만 존재하는 네이티브-JS 브릿지 연결 테스트.
 // 기존 DriveLog(TWA)나 브라우저에는 window.AndroidBridge 자체가 없어서 이 블록은 조용히
 // 아무 일도 안 하고 넘어간다 — 완전히 안전한 기능 감지(feature detection) 방식.

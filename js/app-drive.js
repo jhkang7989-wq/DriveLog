@@ -12,6 +12,7 @@ async function toggleDrive() {
     appState.currentTrip = { id: Date.now(), startTime: new Date().toISOString(), startLat: loc.lat, startLng: loc.lng, startAddrRoad: addr.road, startAddrJibun: addr.jibun, waypoints: [] };
     appState.isRunning = true;
     saveData();
+    callNativeBridge('startTracking');
   } else {
     const endAddr = await getAddressesFromCoords(loc.lat, loc.lng);
     const trip = appState.currentTrip;
@@ -39,6 +40,7 @@ async function toggleDrive() {
     appState.isRunning = false;
     appState.currentTrip = null;
     saveData();
+    callNativeBridge('stopTracking');
 
     if (anyEstimated) {
       document.getElementById('location-text').innerHTML = `<span style="color:#FFB74D;">거리 계산 API 오류 발생</span><br>(직선거리 기반으로 추정 계산되었습니다)`;
