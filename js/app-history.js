@@ -55,27 +55,67 @@ function formatRegionAddress(addr) {
   return parts.length >= 2 ? `${sido} ${parts[1]}` : sido;
 }
 
+// 기록 하나(출발~경유~도착)를 "지역이 바뀌는 지점"마다 여러 구간(leg)으로 쪼갬 — 일지용 요약 보기 전용.
+// 하루 출발/도착만 찍고 나머지는 전부 자동 경유로 기록되는 사용 방식이라, 경유지를 거치며 지역이
+// 바뀌면 레코드가 여러 개일 때와 동일하게 별도 줄로 나눠서 보여주기 위함. 같은 지역 안에서 찍힌
+// 경유지는 별도 줄을 만들지 않고 그 구간 거리에 합쳐진다.
+// 구간별 거리는 원본(raw, 보정 전) 구간 거리 비율대로 record.distance(보정 적용된 최종값)를 배분해서
+// 계산 — 그래야 쪼갠 구간들의 합이 항상 원래 총거리와 정확히 일치한다.
+function buildRecordLegs(r) {
+  const addrOf = (road, jibun) => (appState.settings.addressPref === 'road' ? (road || jibun) : (jibun || road)) || '(주소 정보 없음)';
+  const startAddr = addrOf(r.startAddrRoad, r.startAddrJibun);
+  const endAddr = addrOf(r.endAddrRoad, r.endAddrJibun);
+  const wholeTripLeg = [{ startAddr, destAddr: endAddr, destRegionKey: extractRegion(endAddr), distance: r.distance }];
+
+  if (!r.waypoints || r.waypoints.length === 0) return wholeTripLeg; // 경유지 없는 기록(과거 기록 포함)은 기존과 완전히 동일
+
+  const points = [{ addr: startAddr }];
+  r.waypoints.forEach(w => points.push({ addr: addrOf(w.addrRoad, w.addrJibun), rawLeg: w.legDistanceKm }));
+  points.push({ addr: endAddr, rawLeg: r.finalLegKm || 0 });
+
+  // 같은 지역이 연속되면 노드 하나로 합침(구간 경계가 되는 지점만 노드로 남김)
+  const nodes = [];
+  points.forEach(p => {
+    const region = extractRegion(p.addr);
+    const last = nodes[nodes.length - 1];
+    if (last && region && last._region === region) {
+      last.rawLegSum += (p.rawLeg || 0);
+    } else {
+      nodes.push({ addr: p.addr, _region: region, rawLegSum: p.rawLeg || 0 });
+    }
+  });
+  if (nodes.length <= 1) return wholeTripLeg; // 지역 추출 실패 등 예외 상황 — 통짜 구간으로 폴백
+
+  const rawTotal = nodes.reduce((sum, n, i) => (i === 0 ? sum : sum + n.rawLegSum), 0);
+  if (rawTotal <= 0) return wholeTripLeg; // 구간별 원본 거리를 못 구한 경우도 통짜 구간으로 폴백
+  const scale = r.distance / rawTotal;
+
+  const legs = [];
+  for (let i = 1; i < nodes.length; i++) {
+    legs.push({ startAddr: nodes[i - 1].addr, destAddr: nodes[i].addr, destRegionKey: nodes[i]._region, distance: nodes[i].rawLegSum * scale });
+  }
+  return legs;
+}
+
 // 도착지 지역이 바뀔 때까지 연속된 구간을 하나로 합산 (일지용 요약 보기 전용)
 // records는 반드시 시간순(오름차순)으로 전달해야 함
 function buildSummaryGroups(records) {
   const groups = [];
   records.forEach(r => {
-    const sAddr = appState.settings.addressPref === 'road' ? (r.startAddrRoad || r.startAddrJibun) : (r.startAddrJibun || r.startAddrRoad);
-    const eAddr = appState.settings.addressPref === 'road' ? (r.endAddrRoad || r.endAddrJibun) : (r.endAddrJibun || r.endAddrRoad);
-    const destRegionKey = extractRegion(eAddr); // 병합 판단 전용 키
-
-    const last = groups[groups.length - 1];
-    if (last && destRegionKey && last._destRegionKey === destRegionKey) {
-      last.distance += r.distance;
-      last.destAddrRaw = eAddr || last.destAddrRaw; // 표시용 원본 주소는 최신 도착지로 갱신
-    } else {
-      groups.push({
-        startAddr: sAddr || '(주소 정보 없음)',
-        destAddrRaw: eAddr || '(주소 정보 없음)',
-        _destRegionKey: destRegionKey,
-        distance: r.distance
-      });
-    }
+    buildRecordLegs(r).forEach(leg => {
+      const last = groups[groups.length - 1];
+      if (last && leg.destRegionKey && last._destRegionKey === leg.destRegionKey) {
+        last.distance += leg.distance;
+        last.destAddrRaw = leg.destAddr || last.destAddrRaw; // 표시용 원본 주소는 최신 도착지로 갱신
+      } else {
+        groups.push({
+          startAddr: leg.startAddr,
+          destAddrRaw: leg.destAddr,
+          _destRegionKey: leg.destRegionKey,
+          distance: leg.distance
+        });
+      }
+    });
   });
   return groups;
 }

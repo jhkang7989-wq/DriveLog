@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v31'; // 백그라운드 정차 감지 데이터를 실제 경유지로 반영하는 로직 연결
+const CACHE_NAME = 'drive-log-v32'; // 일지용 요약에서 경유지로 지역이 바뀌면 구간을 나눠서 표시
 const ASSETS = [
   './index.html',
   './style.css',
