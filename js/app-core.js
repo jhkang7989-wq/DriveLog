@@ -19,6 +19,16 @@ document.addEventListener('touchend', e => {
   lastTouchEnd = now;
 }, false);
 
+// DriveLogPro(네이티브 웹뷰 앱)에서만 존재하는 네이티브-JS 브릿지 연결 테스트.
+// 기존 DriveLog(TWA)나 브라우저에는 window.AndroidBridge 자체가 없어서 이 블록은 조용히
+// 아무 일도 안 하고 넘어간다 — 완전히 안전한 기능 감지(feature detection) 방식.
+// TODO(임시 테스트용): 실제 경유지 데이터 연동 붙이면 이 토스트는 지울 것.
+if (window.AndroidBridge && typeof window.AndroidBridge.getBridgeVersion === 'function') {
+  const bridgeVersion = window.AndroidBridge.getBridgeVersion();
+  console.log('[AndroidBridge] 연결됨:', bridgeVersion);
+  setTimeout(() => showToast('🔧 네이티브 브릿지 연결됨: ' + bridgeVersion), 500);
+}
+
 // 서비스워커 등록 (에셋 캐싱 → 오프라인 지원용).
 if ('serviceWorker' in navigator) {
   // updateViaCache: 'none' — sw.js 자체가 크롬의 일반 HTTP 캐시에 걸려서 업데이트 확인할 때마다

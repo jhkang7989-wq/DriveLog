@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v27'; // ?action= 조기 제거로 자동실행 버그 근본 수정 (NFC 영향 없음)
+const CACHE_NAME = 'drive-log-v28'; // DriveLogPro용 네이티브 브릿지 감지 훅 추가 (TWA/PWA엔 영향 없음)
 const ASSETS = [
   './index.html',
   './style.css',
