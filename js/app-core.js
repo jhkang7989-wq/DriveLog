@@ -23,7 +23,7 @@ document.addEventListener('touchend', e => {
 // 일반 브라우저에서는 이 함수가 그냥 아무 일도 안 하고 조용히 넘어간다(안전한 기능 감지).
 function callNativeBridge(methodName, ...args) {
   if (window.AndroidBridge && typeof window.AndroidBridge[methodName] === 'function') {
-    window.AndroidBridge[methodName](...args);
+    return window.AndroidBridge[methodName](...args);
   }
 }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v29'; // 출발/도착 시 네이티브 추적 서비스 시작/종료 호출 연결
+const CACHE_NAME = 'drive-log-v30'; // 추적 시작/종료 결과를 토스트로 진단 표시 (임시)
 const ASSETS = [
   './index.html',
   './style.css',

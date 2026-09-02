@@ -12,7 +12,9 @@ async function toggleDrive() {
     appState.currentTrip = { id: Date.now(), startTime: new Date().toISOString(), startLat: loc.lat, startLng: loc.lng, startAddrRoad: addr.road, startAddrJibun: addr.jibun, waypoints: [] };
     appState.isRunning = true;
     saveData();
-    callNativeBridge('startTracking');
+    // TODO(임시 진단용): 알림이 안 뜨는 원인 확인되면 결과 토스트 지우고 조용히 호출만 할 것
+    const trackingResult = callNativeBridge('startTracking');
+    if (trackingResult) showToast('🔧 추적 시작: ' + trackingResult);
   } else {
     const endAddr = await getAddressesFromCoords(loc.lat, loc.lng);
     const trip = appState.currentTrip;
@@ -40,7 +42,8 @@ async function toggleDrive() {
     appState.isRunning = false;
     appState.currentTrip = null;
     saveData();
-    callNativeBridge('stopTracking');
+    const stopTrackingResult = callNativeBridge('stopTracking');
+    if (stopTrackingResult) showToast('🔧 추적 종료: ' + stopTrackingResult);
 
     if (anyEstimated) {
       document.getElementById('location-text').innerHTML = `<span style="color:#FFB74D;">거리 계산 API 오류 발생</span><br>(직선거리 기반으로 추정 계산되었습니다)`;
