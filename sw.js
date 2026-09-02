@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v30'; // 추적 시작/종료 결과를 토스트로 진단 표시 (임시)
+const CACHE_NAME = 'drive-log-v31'; // 백그라운드 정차 감지 데이터를 실제 경유지로 반영하는 로직 연결
 const ASSETS = [
   './index.html',
   './style.css',

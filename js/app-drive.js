@@ -12,10 +12,12 @@ async function toggleDrive() {
     appState.currentTrip = { id: Date.now(), startTime: new Date().toISOString(), startLat: loc.lat, startLng: loc.lng, startAddrRoad: addr.road, startAddrJibun: addr.jibun, waypoints: [] };
     appState.isRunning = true;
     saveData();
-    // TODO(임시 진단용): 알림이 안 뜨는 원인 확인되면 결과 토스트 지우고 조용히 호출만 할 것
-    const trackingResult = callNativeBridge('startTracking');
-    if (trackingResult) showToast('🔧 추적 시작: ' + trackingResult);
+    callNativeBridge('startTracking');
   } else {
+    // 도착 확정 전, 그사이 백그라운드에서 자동 감지된 정차가 있으면 먼저 경유지로 반영해서
+    // 최종 거리 계산에 빠짐없이 포함되게 함
+    await drainPendingNativeWaypoints();
+
     const endAddr = await getAddressesFromCoords(loc.lat, loc.lng);
     const trip = appState.currentTrip;
     const waypoints = trip.waypoints || [];
@@ -42,8 +44,7 @@ async function toggleDrive() {
     appState.isRunning = false;
     appState.currentTrip = null;
     saveData();
-    const stopTrackingResult = callNativeBridge('stopTracking');
-    if (stopTrackingResult) showToast('🔧 추적 종료: ' + stopTrackingResult);
+    callNativeBridge('stopTracking');
 
     if (anyEstimated) {
       document.getElementById('location-text').innerHTML = `<span style="color:#FFB74D;">거리 계산 API 오류 발생</span><br>(직선거리 기반으로 추정 계산되었습니다)`;
@@ -54,18 +55,18 @@ async function toggleDrive() {
 
 const MAX_WAYPOINTS = 10;
 
-async function addWaypoint() {
-  triggerHaptic();
-  if (!appState.isRunning || !appState.currentTrip) return;
+// 실제 경유지 등록 로직 — 화면의 "경유" 버튼(addWaypoint)과 DriveLogPro의 백그라운드 자동 정차
+// 감지(drainPendingNativeWaypoints) 양쪽에서 공유해서 쓴다. silent면 최대개수 초과 안내 외의
+// 토스트를 안 띄움(자동 감지분은 여러 건을 한꺼번에 조용히 처리하고 마지막에 한 번만 안내하기 위함).
+async function addWaypointAtLocation(loc, { silent = false } = {}) {
+  if (!appState.isRunning || !appState.currentTrip) return false;
 
   if (!appState.currentTrip.waypoints) appState.currentTrip.waypoints = [];
   if (appState.currentTrip.waypoints.length >= MAX_WAYPOINTS) {
-    showToast(`경유지는 최대 ${MAX_WAYPOINTS}개까지 기록할 수 있어요.`);
-    return;
+    if (!silent) showToast(`경유지는 최대 ${MAX_WAYPOINTS}개까지 기록할 수 있어요.`);
+    return false;
   }
-  if (!currentLocation) { showToast('GPS 위치를 파악하는 중입니다.'); return; }
 
-  const loc = await getBestLocation();
   const addr = await getAddressesFromCoords(loc.lat, loc.lng);
 
   const trip = appState.currentTrip;
@@ -83,7 +84,40 @@ async function addWaypoint() {
 
   saveData();
   updateWaypointButtonLabel();
-  showToast('경유지가 저장됐어요.');
+  if (!silent) showToast('경유지가 저장됐어요.');
+  return true;
+}
+
+async function addWaypoint() {
+  triggerHaptic();
+  if (!appState.isRunning || !appState.currentTrip) return;
+  if (!currentLocation) { showToast('GPS 위치를 파악하는 중입니다.'); return; }
+
+  const loc = await getBestLocation();
+  await addWaypointAtLocation(loc);
+}
+
+// DriveLogPro 백그라운드 정차 감지로 쌓인 경유지 후보를 반영. 네이티브는 좌표/시각만 넘기고,
+// 주소 변환·거리 계산은 여기서(addWaypointAtLocation) 기존 로직을 그대로 재사용해 처리한다.
+// 기존 DriveLog(TWA)/브라우저에는 callNativeBridge가 항상 undefined를 반환하니 완전히 안전.
+async function drainPendingNativeWaypoints() {
+  if (!appState.isRunning || !appState.currentTrip) return;
+
+  const raw = callNativeBridge('getPendingWaypoints');
+  if (!raw) return;
+
+  let points;
+  try { points = JSON.parse(raw); } catch (e) { return; }
+  if (!Array.isArray(points) || points.length === 0) return;
+
+  let addedCount = 0;
+  for (const point of points) {
+    const added = await addWaypointAtLocation({ lat: point.lat, lng: point.lng }, { silent: true });
+    if (added) addedCount++;
+  }
+  callNativeBridge('clearPendingWaypoints');
+
+  if (addedCount > 0) showToast(`🚗 자동 감지된 정차 ${addedCount}건이 경유지로 기록됐어요.`);
 }
 
 function updateWaypointButtonVisibility() {

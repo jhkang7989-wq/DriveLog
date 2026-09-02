@@ -27,14 +27,12 @@ function callNativeBridge(methodName, ...args) {
   }
 }
 
-// DriveLogPro(네이티브 웹뷰 앱)에서만 존재하는 네이티브-JS 브릿지 연결 테스트.
-// 기존 DriveLog(TWA)나 브라우저에는 window.AndroidBridge 자체가 없어서 이 블록은 조용히
-// 아무 일도 안 하고 넘어간다 — 완전히 안전한 기능 감지(feature detection) 방식.
-// TODO(임시 테스트용): 실제 경유지 데이터 연동 붙이면 이 토스트는 지울 것.
-if (window.AndroidBridge && typeof window.AndroidBridge.getBridgeVersion === 'function') {
-  const bridgeVersion = window.AndroidBridge.getBridgeVersion();
-  console.log('[AndroidBridge] 연결됨:', bridgeVersion);
-  setTimeout(() => showToast('🔧 네이티브 브릿지 연결됨: ' + bridgeVersion), 500);
+// DriveLogPro에서 백그라운드로 감지된 정차(경유지 후보)를 주기적으로 확인해서 반영.
+// 도착 시점에도 한 번 더 확인하지만(app-drive.js), 운행 중에 화면을 보고 있다면 그때그때
+// 바로 반영되는 게 자연스러워서 20초 간격으로도 확인한다. 기존 DriveLog(TWA)/브라우저에는
+// window.AndroidBridge 자체가 없어서 이 setInterval은 등록만 되고 매번 조용히 아무 일도 안 함.
+if (window.AndroidBridge) {
+  setInterval(() => drainPendingNativeWaypoints(), 20000);
 }
 
 // 서비스워커 등록 (에셋 캐싱 → 오프라인 지원용).
