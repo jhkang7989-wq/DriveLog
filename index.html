@@ -22,10 +22,10 @@
     })();
   </script>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1E1E1E">
+  <meta name="theme-color" content="#000000">
   
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="style.css?v=37">
+  <link rel="stylesheet" href="style.css?v=38">
 
 </head>
 <body>
@@ -44,21 +44,27 @@
   <div id="tab-main" class="tab-content active">
     <div class="header-area">
       <div class="distance-display">
-        <p>오늘 누적 이동 거리</p>
-        <h1><span id="today-distance">0.0</span> <span style="font-size: 1.2rem;">km</span></h1>
-        <p style="margin-top:8px; font-size:1.05rem;">이번 달 누계: <span id="month-distance" style="font-size:1.3rem; font-weight:700; color:var(--text-main);">0.0</span> km</p>
+        <div class="distance-badge-wrap">
+          <p>오늘 누적 이동 거리</p>
+          <span class="rec-indicator">● 운행중</span>
+        </div>
+        <h1><span id="today-distance">0.0</span> <span class="distance-unit">km</span></h1>
+        <div class="month-distance-row">
+          <span class="month-label">이번 달 누계</span>
+          <span class="month-val"><span id="month-distance">0.0</span> km</span>
+        </div>
       </div>
     </div>
     <div class="main-btn-container">
       <button id="btn-toggle-drive" class="main-toggle-btn" onclick="toggleDrive()">
-        <i data-lucide="play" id="btn-icon" style="width:56px; height:56px;"></i>
+        <i data-lucide="play" id="btn-icon"></i>
         <span id="btn-text">출발</span>
       </button>
       <div class="waypoint-btn-wrapper" id="waypoint-btn-wrapper" style="display:none;">
         <button id="btn-waypoint" class="waypoint-btn" onclick="addWaypoint()">경유</button>
       </div>
       <div class="current-location">
-        <i data-lucide="map-pin" style="width:16px; height:16px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+        <i data-lucide="map-pin" class="location-icon"></i>
         <span id="location-text">위치 정보를 파악하고 있습니다...</span>
       </div>
     </div>
@@ -95,9 +101,9 @@
         <div style="font-size:0.82rem; line-height:1.7; padding-bottom:14px;">
           <p style="margin-bottom:12px; color:var(--text-muted);">차량용 NFC 스티커에 아래 주소를 등록해두면, 태그만 찍어도 출발/도착이 자동으로 기록돼요.</p>
 
-          <div style="background:var(--bg-color); border-radius:10px; padding:10px 12px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-            <code id="nfc-url-text" style="font-size:0.68rem; color:var(--accent-color); word-break:break-all; flex:1;">https://jhkang7989-wq.github.io/DriveLog/?action=toggle</code>
-            <button onclick="copyNfcUrl()" style="flex-shrink:0; background:var(--accent-color); color:white; border:none; border-radius:8px; padding:6px 10px; font-size:0.7rem; cursor:pointer;">복사</button>
+          <div class="nfc-url-box" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <code id="nfc-url-text" style="word-break:break-all; flex:1;">https://jhkang7989-wq.github.io/DriveLog/?action=toggle</code>
+            <button class="nfc-copy-btn" onclick="copyNfcUrl()">복사</button>
           </div>
 
           <div style="display:flex; align-items:center; gap:6px; font-weight:700; margin-bottom:6px; color:var(--text-main);"><i data-lucide="smartphone" style="width:15px; height:15px; color:var(--accent-color);"></i> 안드로이드</div>
@@ -130,32 +136,32 @@
     </div>
 
     <div class="settings-group">
-      <div class="setting-item">
+      <div class="setting-item has-sub-info">
         <div class="setting-label"><i data-lucide="file-spreadsheet"></i> 엑셀(CSV) 내보내기</div>
         <div style="display:flex; gap:6px;">
           <button class="setting-action" onclick="downloadCSV()"><i data-lucide="download"></i></button>
           <button class="setting-action" onclick="shareCSV()"><i data-lucide="share-2"></i></button>
         </div>
       </div>
-      <div style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px;">
-        <div style="display:flex; align-items:center; gap:4px; margin-bottom:2px;"><i data-lucide="download" style="width:11px; height:11px; flex-shrink:0;"></i>다운로드: 현재 <span id="csv-mode-label">상세</span> 보기 기준</div>
-        <div style="display:flex; align-items:center; gap:4px;"><i data-lucide="share-2" style="width:11px; height:11px; flex-shrink:0;"></i>공유: 항상 일지용 요약 (메일 앱 권장)</div>
+      <div class="setting-sub-info">
+        <div><i data-lucide="download"></i>다운로드: 현재 <span id="csv-mode-label">상세</span> 보기 기준</div>
+        <div><i data-lucide="share-2"></i>공유: 일지용 요약</div>
       </div>
-      <div class="setting-item">
+      <div class="setting-item has-sub-info">
         <div class="setting-label"><i data-lucide="download-cloud"></i> 데이터 백업 (JSON)</div>
         <button class="setting-action" onclick="exportBackup()"><i data-lucide="save"></i></button>
       </div>
-      <div id="last-backup-label" style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px;"></div>
+      <div id="last-backup-label" class="setting-sub-info"></div>
       <div class="setting-item">
         <div class="setting-label"><i data-lucide="upload-cloud"></i> 데이터 복원</div>
         <button class="setting-action" onclick="triggerRestore()"><i data-lucide="upload"></i></button>
         <input type="file" id="restore-file-input" accept="application/json" style="display:none;" onchange="handleRestoreFile(event)">
       </div>
-      <div class="setting-item">
+      <div class="setting-item has-sub-info">
         <div class="setting-label"><i data-lucide="calendar-x"></i> 이전 기록 삭제</div>
         <button class="setting-action" onclick="deletePastMonths()"><i data-lucide="calendar-x"></i></button>
       </div>
-      <div style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px;">이번 달을 제외한 지난 기록을 삭제합니다</div>
+      <div class="setting-sub-info">이번 달을 제외한 지난 기록을 삭제합니다</div>
     </div>
 
     <div class="settings-group">
@@ -180,14 +186,14 @@
         </div>
         <div class="setting-item">
           <div class="setting-label"><i data-lucide="map"></i> 주소 표기</div>
-          <select id="setting-address" onchange="saveSettings()" style="background:var(--bg-color); color:var(--text-main); border:1px solid #444; padding:5px; border-radius:8px;">
+          <select id="setting-address" onchange="saveSettings()">
             <option value="jibun">지번 우선</option>
             <option value="road">도로명 우선</option>
           </select>
         </div>
         <div class="setting-item">
           <div class="setting-label"><i data-lucide="gauge"></i> 계기판 오차 (+%)</div>
-          <input type="number" id="setting-offset" value="3" onchange="saveSettings()" style="width:60px; text-align:right; background:var(--bg-color); color:var(--text-main); border:1px solid #444; padding:5px; border-radius:8px;">
+          <input type="number" id="setting-offset" value="3" onchange="saveSettings()">
         </div>
         <div class="setting-item">
           <div class="setting-label"><i data-lucide="map-pin-plus"></i> 경유 버튼 표시</div>
@@ -297,10 +303,10 @@
   </div>
 </div>
 
-<script src="js/app-core.js?v=37"></script>
-<script src="js/app-location.js?v=37"></script>
-<script src="js/app-drive.js?v=37"></script>
-<script src="js/app-history.js?v=37"></script>
-<script src="js/app-data.js?v=37"></script>
+<script src="js/app-core.js?v=38"></script>
+<script src="js/app-location.js?v=38"></script>
+<script src="js/app-drive.js?v=38"></script>
+<script src="js/app-history.js?v=38"></script>
+<script src="js/app-data.js?v=38"></script>
 </body>
 </html>

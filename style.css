@@ -1,159 +1,1345 @@
 :root {
-  --bg-color: #121212;
-  --surface-color: #1E1E1E;
-  --card-color: #F4F1E1;
-  --accent-color: #F0713B;
+  /* ==========================================================================
+     테슬라 스타일 다크 모드 (기본 테마: True Deep Black & 1px Hairline)
+     ========================================================================== */
+  --bg-color: #000000;
+  --surface-color: #0A0A0C;
+  --surface-card: #0F0F12;
+  --surface-elevated: #161619;
+  --card-color: #0B0B0E;
+  --border-color: #1E1E22;
+  --border-subtle: #141417;
+  --border-focus: #3A3A40;
+  
+  /* 테슬라 포인트 오렌지 (선명하고 날렵한 일렉트릭 앰버) */
+  --accent-color: #FF5A1E;
+  --accent-hover: #FF6E38;
+  --accent-tint: rgba(255, 90, 30, 0.12);
+  --accent-tint-border: rgba(255, 90, 30, 0.25);
+  
+  --danger-color: #E53935;
+  --success-color: #2E7D32;
+  --warning-color: #F57C00;
+  
+  /* 텍스트 계층 (고대비 순백 & 샤프 그레이) */
   --text-main: #FFFFFF;
-  --text-muted: #888888;
-  --text-card: #121212;
-  --border-radius-pill: 50px;
-  --border-radius-card: 24px;
+  --text-secondary: #9E9EA4;
+  --text-muted: #5E5E66;
+  --text-card: #FFFFFF;
+  --text-card-sub: #9E9EA4;
+  --text-card-muted: #5E5E66;
+
+  /* 라운딩 및 규격 */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 11px;
+  --radius-lg: 14px;
+  --border-radius-pill: 9999px;
+  --border-radius-card: 14px;
+
+  /* 대형 버튼 비주얼 */
+  --btn-main-bg: #09090B;
+  --btn-main-border: #24242A;
 }
 
 [data-theme="light"] {
-  --bg-color: #F8F9FA;
+  /* ==========================================================================
+     테슬라 스타일 라이트 모드 (절제, 1px Hairline, 클린 미니멀)
+     ========================================================================== */
+  --bg-color: #F4F4F6;
   --surface-color: #FFFFFF;
+  --surface-card: #FFFFFF;
+  --surface-elevated: #ECECEF;
   --card-color: #FFFFFF;
-  --text-main: #121212;
-  --text-muted: #666666;
-  --text-card: #121212;
+  --border-color: #E2E2E6;
+  --border-subtle: #EBEBEF;
+  --border-focus: #B0B0B8;
+  
+  --accent-color: #FF5A1E;
+  --accent-hover: #E0480F;
+  --accent-tint: rgba(255, 90, 30, 0.08);
+  --accent-tint-border: rgba(255, 90, 30, 0.22);
+  
+  --danger-color: #D32F2F;
+  --success-color: #2E7D32;
+  --warning-color: #ED6C02;
+  
+  --text-main: #111113;
+  --text-secondary: #585860;
+  --text-muted: #8E8E95;
+  --text-card: #111113;
+  --text-card-sub: #585860;
+  --text-card-muted: #8E8E95;
+
+  --btn-main-bg: #FFFFFF;
+  --btn-main-border: #D8D8DE;
 }
 
-html { overscroll-behavior-y: none; background-color: var(--bg-color); touch-action: pan-x pan-y; }
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* ==========================================================================
+   기본 리셋 및 타이포그래피
+   ========================================================================== */
+html {
+  overscroll-behavior-y: none;
+  background-color: var(--bg-color);
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+}
 
-/* 입력 가능한 요소는 텍스트 선택/길게 누르기 정상 동작하도록 예외 처리 */
-input, textarea {
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", Roboto, sans-serif;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input, textarea, select {
   -webkit-touch-callout: default;
   -webkit-user-select: text;
   user-select: text;
 }
 
-body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s, color 0.3s; overscroll-behavior-y: none; touch-action: pan-x pan-y; }
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  overscroll-behavior-y: none;
+  touch-action: pan-x pan-y;
+}
 
-#app { max-width: 480px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; position: relative; }
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background-color: var(--bg-color);
+}
 
-/* 글로벌 헤더 */
-.global-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 10px 20px; flex-shrink: 0; }
-.brand { display: flex; align-items: center; }
-.brand-logo { height: 44px; width: auto; object-fit: contain; }
+/* ==========================================================================
+   글로벌 헤더 (Safe Area 대응 & 1px Hairline)
+   ========================================================================== */
+.global-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 20px 10px 20px;
+  flex-shrink: 0;
+  z-index: 10;
+}
 
-.gps-indicator { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; background: var(--surface-color); padding: 6px 12px; border-radius: var(--border-radius-pill); }
-.gps-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; }
-.gps-dot.green { background: #4CAF50; box-shadow: 0 0 8px #4CAF50; }
-.gps-dot.yellow { background: #FFEB3B; box-shadow: 0 0 8px #FFEB3B; }
-.gps-dot.red { background: #F44336; box-shadow: 0 0 8px #F44336; }
+.brand {
+  display: flex;
+  align-items: center;
+}
 
-/* 탭 컨텐츠 */
-.tab-content { flex: 1; overflow-y: auto; overscroll-behavior-y: contain; padding: 10px 20px calc(96px + env(safe-area-inset-bottom)) 20px; display: none; animation: fadeIn 0.3s ease; }
-.tab-content.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.brand-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  transition: opacity 0.2s ease;
+}
 
-/* 메인 화면 */
-.header-area { margin-bottom: 40px; margin-top: 10px; }
-.distance-display h1 { font-size: 3.2rem; font-weight: 800; color: var(--accent-color); line-height: 1.1; letter-spacing: -1px;}
-.distance-display p { font-size: 1rem; color: var(--text-muted); margin-bottom: 8px; }
-.main-btn-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px; }
-.main-toggle-btn { width: 220px; height: 220px; border-radius: 50%; border: none; background: var(--surface-color); color: var(--text-main); font-size: 2.2rem; font-weight: bold; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; box-shadow: 10px 10px 20px rgba(0,0,0,0.2), -10px -10px 20px rgba(255,255,255,0.05); transition: all 0.2s ease; cursor: pointer; }
-.main-toggle-btn:active { transform: scale(0.95); box-shadow: inset 10px 10px 20px rgba(0,0,0,0.2), inset -10px -10px 20px rgba(255,255,255,0.05); }
-.main-toggle-btn.is-running { background: var(--accent-color); color: white; box-shadow: 0 0 30px rgba(240, 113, 59, 0.4); }
-.current-location { text-align: center; margin-top: 35px; font-size: 0.95rem; color: var(--text-muted); min-height: 40px; padding: 0 20px; line-height: 1.5; }
+.gps-indicator {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--surface-color);
+  color: var(--text-secondary);
+  padding: 5px 11px;
+  border-radius: var(--border-radius-pill);
+  border: 1px solid var(--border-color);
+  transition: border-color 0.2s ease;
+}
 
-/* 경유 버튼 — 부모 폭 전체로 늘어나지 않도록 inline-flex + fit-content, 중앙 정렬은 별도 wrapper에서 처리 */
-.waypoint-btn-wrapper { display: flex; justify-content: center; margin-top: 16px; }
-.waypoint-btn { display: inline-flex; align-items: center; justify-content: center; width: fit-content; height: 44px; padding: 0 34px; font-size: 17px; font-weight: 700; color: var(--accent-color); background: var(--surface-color); border: 2px solid var(--accent-color); border-radius: var(--border-radius-pill); box-shadow: 10px 10px 20px rgba(0,0,0,0.2), -10px -10px 20px rgba(255,255,255,0.05); transition: all 0.2s ease; cursor: pointer; }
-.waypoint-btn:active { transform: scale(0.95); box-shadow: inset 10px 10px 20px rgba(0,0,0,0.2), inset -10px -10px 20px rgba(255,255,255,0.05); }
+.gps-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #55555C;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
 
-/* 타임라인 카드 (압축형) */
-.history-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.history-month-header { font-size: 1.2rem; font-weight: bold; }
-.add-record-btn { background: var(--accent-color); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.add-record-btn i { width: 18px; height: 18px; }
-.view-toggle-row { display: flex; gap: 8px; margin-bottom: 16px; }
-.view-toggle-btn { flex: 1; padding: 8px; border: none; border-radius: 10px; background: var(--surface-color); color: var(--text-muted); font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-.view-toggle-btn.active { background: var(--accent-color); color: white; }
-.card-date { font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; cursor: pointer; }
-.card-date-right { display: flex; align-items: center; gap: 6px; }
-.card-date-total { font-weight: 800; color: var(--accent-color); font-size: 0.95rem; }
-.card-date .date-chevron { transition: transform 0.25s ease; width: 16px; height: 16px; color: var(--text-muted); }
-.card-date.collapsed .date-chevron { transform: rotate(-90deg); }
-.date-group-body { overflow: hidden; }
-.summary-card { background: var(--card-color); color: var(--text-card); border-radius: 14px; padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-.summary-route { font-size: 0.85rem; font-weight: 600; flex: 1; line-height: 1.4; }
-.summary-distance { font-size: 0.95rem; font-weight: bold; color: var(--accent-color); white-space: nowrap; flex-shrink: 0; }
-.swipe-wrapper { position: relative; border-radius: 14px; margin-bottom: 8px; overflow: hidden; }
-.swipe-delete-bg { position: absolute; top: 0; right: 0; bottom: 0; width: 64px; background: #F44336; display: flex; align-items: center; justify-content: center; color: white; }
-.timeline-card { background: var(--card-color); color: var(--text-card); border-top-left-radius: 14px; border-bottom-left-radius: 14px; border-top-right-radius: 0; border-bottom-right-radius: 0; padding: 10px 14px; position: relative; margin-bottom: 0; touch-action: pan-y; transition: transform 0.25s ease; will-change: transform; }
-.card-row-top { display: flex; justify-content: space-between; align-items: center; }
-.card-time { font-size: 0.75rem; color: #777; }
-.card-distance { font-size: 1rem; font-weight: bold; color: var(--accent-color); }
-.card-addr-row { font-size: 0.76rem; color: #444; margin-top: 3px; line-height: 1.4; }
-.card-addr-label { display: inline-block; width: 34px; font-weight: 700; color: var(--accent-color); font-size: 0.68rem; vertical-align: top; }
-.card-note-badge { font-size: 0.7rem; color: var(--text-card); margin-top: 2px; }
-.card-note-badge.card-note-warning { color: var(--accent-color); }
+.gps-dot.green {
+  background: var(--success-color);
+}
+.gps-dot.green::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1px solid var(--success-color);
+  opacity: 0.6;
+  animation: gpsPulse 2s infinite ease-out;
+}
 
-/* 경유지 뱃지 + 표시 카드 좌측 컬러바 */
-.card-distance-group { display: flex; align-items: center; gap: 6px; }
-.waypoint-badge { font-size: 0.68rem; font-weight: 700; color: var(--accent-color); background: rgba(240, 113, 59, 0.12); padding: 3px 8px; border-radius: 999px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
-.timeline-card.has-waypoints { box-shadow: inset 4px 0 0 0 var(--accent-color); }
+.gps-dot.yellow {
+  background: var(--warning-color);
+}
 
-/* 경유지 상세 모달 목록 */
-.waypoint-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(128,128,128,0.15); }
-.waypoint-item:last-child { border-bottom: none; }
-.waypoint-item-info { flex: 1; }
-.waypoint-item-addr { font-size: 0.85rem; font-weight: 600; line-height: 1.4; }
-.waypoint-item-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
-.waypoint-item-delete { background: transparent; border: none; color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-.waypoint-item-delete i { width: 16px; height: 16px; }
-.waypoint-item-delete:active { background: rgba(244,67,54,0.12); color: #F44336; }
+.gps-dot.red {
+  background: var(--danger-color);
+}
 
-/* 설정 영역 */
-.settings-group { background: var(--surface-color); border-radius: var(--border-radius-card); padding: 10px 20px; margin-bottom: 20px; }
-.setting-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-.setting-item:last-child { border-bottom: none; }
-.setting-label { display: flex; align-items: center; gap: 12px; }
-.setting-action { background: var(--accent-color); color: white; border: none; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-.setting-action i { width: 19px; height: 19px; }
-.advanced-toggle { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; cursor: pointer; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; }
-.advanced-toggle .adv-chevron { transition: transform 0.25s ease; width: 16px; height: 16px; }
-.advanced-toggle.open .adv-chevron { transform: rotate(180deg); }
-.setting-danger { background: #F44336; }
+@keyframes gpsPulse {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
 
-/* 토글 스위치 */
-.toggle-switch { position: relative; width: 50px; height: 28px; }
-.toggle-switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
-.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-input:checked + .slider { background-color: var(--accent-color); }
-input:checked + .slider:before { transform: translateX(22px); }
+/* ==========================================================================
+   탭 컨텐츠 공통
+   ========================================================================== */
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: 8px 18px calc(84px + env(safe-area-inset-bottom)) 18px;
+  display: none;
+  animation: tabFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  scrollbar-width: none;
+}
+.tab-content::-webkit-scrollbar {
+  display: none;
+}
 
-/* 하단 네비게이션 바 */
-.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; height: calc(76px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--surface-color); display: flex; justify-content: space-around; align-items: center; border-top-left-radius: 24px; border-top-right-radius: 24px; box-shadow: 0 -10px 30px rgba(0,0,0,0.18); border-top: 1px solid rgba(128,128,128,0.12); z-index: 100; }
-.nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); padding: 9px 22px; border-radius: 18px; cursor: pointer; transition: background-color 0.25s ease, color 0.25s ease, transform 0.15s ease; position: relative; }
-.nav-item:active { transform: scale(0.92); }
-.nav-item i { width: 22px; height: 22px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.nav-item span { font-size: 0.7rem; font-weight: 600; opacity: 0.7; transition: opacity 0.25s ease; }
-.nav-item.active { background: rgba(240, 113, 59, 0.12); color: var(--accent-color); }
-.nav-item.active i { transform: translateY(-1px) scale(1.1); }
-.nav-item.active span { opacity: 1; }
+.tab-content.active {
+  display: block;
+}
 
-/* 토스트 (확인 없이 잠깐 떴다 사라지는 짧은 안내) */
-.toast { position: fixed; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: rgba(30,30,30,0.92); color: #fff; padding: 10px 18px; border-radius: var(--border-radius-pill); font-size: 0.85rem; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease; z-index: 2500; max-width: 80%; text-align: center; }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-/* 로딩 오버레이 */
-.loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 2000; flex-direction: column; color: white;}
-.spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid var(--accent-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px;}
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+/* ==========================================================================
+   메인 탭 (테슬라 스타일 운행 대시보드)
+   ========================================================================== */
+.header-area {
+  margin-top: 2px;
+  margin-bottom: 16px;
+}
 
-/* 수정 모달 */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; }
-.modal-overlay.active { display: flex; }
-.modal-card { background: var(--surface-color); color: var(--text-main); border-radius: var(--border-radius-card); padding: 24px; width: 100%; max-width: 360px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
-.modal-field { margin-bottom: 16px; }
-.modal-field label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
-.modal-field input, .modal-field textarea { width: 100%; background: var(--bg-color); color: var(--text-main); border: 1px solid #444; border-radius: 8px; padding: 10px; font-size: 1rem; resize: none; font-family: inherit; }
-.modal-actions { display: flex; gap: 10px; margin-top: 8px; }
-.modal-btn { flex: 1; padding: 12px; border: none; border-radius: var(--border-radius-pill); font-weight: bold; cursor: pointer; font-size: 0.95rem; }
-.modal-btn-cancel { background: #444; color: white; }
-.modal-btn-save { background: var(--accent-color); color: white; }
+.distance-display {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-card);
+  padding: 14px 18px 12px 18px;
+  position: relative;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* 운행 중(HUD 모드) 대시보드 레코딩 인디케이터 */
+body:has(#btn-toggle-drive.is-running) .distance-display {
+  border-color: rgba(255, 90, 30, 0.45);
+}
+
+.rec-indicator {
+  display: none;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--accent-color);
+  letter-spacing: -0.01em;
+  background: var(--accent-tint);
+  border: 1px solid var(--accent-tint-border);
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  animation: recBlink 1.4s infinite ease-in-out;
+}
+
+body:has(#btn-toggle-drive.is-running) .rec-indicator {
+  display: inline-flex;
+  align-items: center;
+}
+
+@keyframes recBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.25; transform: scale(0.96); }
+}
+
+.distance-display p {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.distance-badge-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 3px;
+}
+
+.distance-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.distance-main-row h1,
+.distance-display h1 {
+  font-size: 2.35rem;
+  font-weight: 800;
+  color: var(--accent-color);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.distance-unit {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+
+.month-distance-row {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.month-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.month-val {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 메인 출발/도착 대형 버튼 (테슬라 콘트롤 스타일 & 엠비언트 링) */
+.main-btn-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.main-toggle-btn {
+  width: 216px;
+  height: 216px;
+  border-radius: 50%;
+  border: 1.5px solid var(--btn-main-border);
+  background: var(--btn-main-bg);
+  color: var(--text-main);
+  font-size: 2.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.18s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  outline: none;
+}
+
+/* 정교한 테슬라 엠비언트 외곽 링 */
+.main-toggle-btn::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  transition: inset 0.25s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.25s ease;
+}
+[data-theme="light"] .main-toggle-btn::before {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.main-toggle-btn i {
+  width: 50px;
+  height: 50px;
+  transition: transform 0.18s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.main-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.main-toggle-btn.is-running {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #FFFFFF;
+  animation: teslaPulse 2.4s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.main-toggle-btn.is-running::before {
+  inset: -12px;
+  border-color: rgba(255, 90, 30, 0.35);
+}
+
+@keyframes teslaPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 90, 30, 0.5);
+  }
+  65% {
+    box-shadow: 0 0 0 16px rgba(255, 90, 30, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 90, 30, 0);
+  }
+}
+
+/* 경유 버튼 */
+.waypoint-btn-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.waypoint-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-width: 110px;
+  height: 42px;
+  padding: 0 28px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  background: var(--surface-color);
+  border: 1px solid var(--accent-color);
+  border-radius: var(--border-radius-pill);
+  transition: transform 0.18s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.2s ease;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+}
+
+.waypoint-btn:active {
+  transform: scale(0.95);
+  background: var(--accent-tint);
+}
+
+/* 현재 위치 텍스트 */
+.current-location {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  padding: 8px 16px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 90%;
+  min-height: 38px;
+}
+
+.current-location i,
+.location-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--accent-color);
+  flex-shrink: 0;
+  margin-right: 5px;
+}
+
+/* ==========================================================================
+   내역 탭 (테슬라 컴팩트 타임라인 & 요약)
+   ========================================================================== */
+.history-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.history-month-header {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+}
+
+.add-record-btn {
+  background: var(--surface-color);
+  color: var(--accent-color);
+  border: 1px solid var(--border-color);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.2s ease;
+}
+.add-record-btn:active {
+  transform: scale(0.92);
+  border-color: var(--accent-color);
+}
+.add-record-btn i {
+  width: 17px;
+  height: 17px;
+}
+
+/* 세그먼티드 컨트롤 */
+.view-toggle-row {
+  display: flex;
+  background: var(--surface-color);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 10px;
+  gap: 3px;
+}
+
+.view-toggle-btn {
+  flex: 1;
+  padding: 7px 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.view-toggle-btn.active {
+  background: var(--accent-color);
+  color: #FFFFFF;
+}
+
+/* 날짜 아코디언 */
+.card-date {
+  font-weight: 700;
+  margin: 10px 0 5px 0;
+  padding: 7px 11px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--text-main);
+  transition: background-color 0.18s ease;
+}
+
+.card-date-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-date-total {
+  font-weight: 800;
+  color: var(--accent-color);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2.5px;
+}
+.card-date-total::after {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--accent-color);
+  border-radius: 2px;
+  opacity: 0.85;
+}
+
+.card-date .date-chevron {
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+}
+
+.card-date.collapsed .date-chevron {
+  transform: rotate(-90deg);
+}
+
+.date-group-body {
+  overflow: hidden;
+}
+
+/* 요약 카드 */
+.summary-card {
+  background: var(--card-color);
+  color: var(--text-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.summary-route {
+  font-size: 0.82rem;
+  font-weight: 600;
+  flex: 1;
+  line-height: 1.38;
+  color: var(--text-card);
+}
+
+.summary-distance {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--accent-color);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 스와이프 삭제 & 타임라인 카드 (일체형 테두리) */
+.swipe-wrapper {
+  position: relative;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  overflow: hidden;
+  background: var(--card-color);
+}
+
+.swipe-delete-bg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 64px;
+  background: var(--danger-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  z-index: 1;
+  border-left: 1px solid var(--border-color);
+}
+
+.timeline-card {
+  background: var(--card-color);
+  color: var(--text-card);
+  border: none;
+  border-radius: 0;
+  padding: 8px 12px;
+  position: relative;
+  margin-bottom: 0;
+  width: 100%;
+  z-index: 2;
+  touch-action: pan-y;
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.timeline-card.has-waypoints {
+  box-shadow: inset 3px 0 0 0 var(--accent-color);
+}
+
+.card-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.card-time {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-distance-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.waypoint-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--accent-color);
+  background: var(--accent-tint);
+  border: 1px solid var(--accent-tint-border);
+  padding: 1.5px 6px;
+  border-radius: var(--border-radius-pill);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+.waypoint-badge:active {
+  background: var(--accent-color);
+  color: #FFFFFF;
+}
+
+.card-distance {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--accent-color);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* 타임라인 메트로 경로선 (Route Connector) */
+.card-addr-row {
+  font-size: 0.76rem;
+  color: var(--text-card-sub) !important;
+  margin-top: 4px;
+  line-height: 1.35;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  word-break: keep-all;
+  position: relative;
+}
+
+.card-addr-row:first-of-type::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 15px;
+  bottom: -6px;
+  width: 1px;
+  background: var(--border-color);
+  z-index: 1;
+}
+
+.card-addr-row:not(:first-of-type):not(:last-of-type)::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: -4px;
+  bottom: -6px;
+  width: 1px;
+  background: var(--border-color);
+  z-index: 1;
+}
+
+.card-addr-row:last-of-type::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: -4px;
+  height: 8px;
+  width: 1px;
+  background: var(--border-color);
+  z-index: 1;
+}
+
+.card-addr-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 4px;
+  font-weight: 800;
+  font-size: 0.6rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+  min-width: 26px;
+  border-radius: 3px;
+  position: relative;
+  z-index: 2;
+}
+
+/* 출발 라벨: 아웃라인 링 */
+.card-addr-row:first-of-type .card-addr-label {
+  color: var(--accent-color);
+  background: var(--card-color);
+  border: 1px solid var(--accent-color);
+}
+
+/* 도착 라벨: 솔리드 오렌지 */
+.card-addr-row:last-of-type .card-addr-label {
+  color: #FFFFFF;
+  background: var(--accent-color);
+  border: 1px solid var(--accent-color);
+}
+
+/* 경유 라벨 */
+.card-addr-row:not(:first-of-type):not(:last-of-type) .card-addr-label {
+  color: var(--accent-color);
+  background: var(--card-color);
+  border: 1px solid var(--border-color);
+}
+
+.card-note-badge {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  background: var(--surface-color);
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-top: 4px;
+  display: inline-block;
+  border: 1px solid var(--border-subtle);
+}
+
+.card-note-badge.card-note-warning {
+  color: var(--accent-color) !important;
+  background: var(--accent-tint);
+  border-color: var(--accent-tint-border);
+  font-weight: 600;
+}
+
+/* 경유지 상세 모달 내부 목록 */
+.waypoint-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.waypoint-item:last-child {
+  border-bottom: none;
+}
+.waypoint-item-info {
+  flex: 1;
+}
+.waypoint-item-addr {
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-main);
+}
+.waypoint-item-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.waypoint-item-delete {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+.waypoint-item-delete:active {
+  background: rgba(229, 57, 53, 0.12);
+  color: var(--danger-color);
+}
+
+/* ==========================================================================
+   설정 탭 (테슬라 미니멀 리스트 스타일)
+   ========================================================================== */
+.settings-title {
+  margin-bottom: 18px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.settings-group {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-card);
+  padding: 2px 16px;
+  margin-bottom: 16px;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.setting-item:last-child,
+.setting-item.has-sub-info,
+.setting-item:has(+ .setting-sub-info) {
+  border-bottom: none;
+}
+.setting-item.has-sub-info,
+.setting-item:has(+ .setting-sub-info) {
+  padding-bottom: 2px;
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.setting-label i {
+  width: 17px;
+  height: 17px;
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+
+.setting-action {
+  background: var(--surface-elevated);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.18s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.setting-action:active {
+  transform: scale(0.93);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+.setting-action i {
+  width: 18px;
+  height: 18px;
+}
+
+.setting-danger {
+  background: transparent;
+  color: var(--danger-color);
+  border-color: rgba(229, 57, 53, 0.3);
+}
+.setting-danger:active {
+  background: var(--danger-color);
+  color: white;
+}
+
+.advanced-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 0;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: color 0.18s ease;
+}
+.advanced-toggle:active {
+  color: var(--accent-color);
+}
+.advanced-toggle .adv-chevron {
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 16px;
+  height: 16px;
+}
+.advanced-toggle.open .adv-chevron {
+  transform: rotate(180deg);
+}
+
+/* 셀렉트 박스 & 인풋 필드 */
+#setting-address,
+#setting-offset,
+.setting-item select,
+.setting-item input[type="number"] {
+  background: var(--surface-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.18s ease;
+}
+
+#setting-offset {
+  width: 66px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#setting-address:focus,
+#setting-offset:focus {
+  border-color: var(--accent-color);
+}
+
+/* 토글 스위치 (테슬라 미니멀) */
+.toggle-switch {
+  position: relative;
+  width: 48px;
+  height: 28px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--surface-elevated);
+  border: 1px solid var(--border-color);
+  transition: .24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  border-radius: 28px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #FFFFFF;
+  transition: .24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+/* ==========================================================================
+   하단 네비게이션 바 (테슬라 스타일: True Black & Hairline)
+   ========================================================================== */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  height: calc(68px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--bg-color);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+  z-index: 100;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-muted);
+  padding: 6px 20px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.18s ease, transform 0.15s ease;
+  position: relative;
+}
+
+.nav-item:active {
+  transform: scale(0.92);
+}
+
+.nav-item i {
+  width: 21px;
+  height: 21px;
+  transition: color 0.18s ease;
+}
+
+.nav-item span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  transition: color 0.18s ease;
+}
+
+.nav-item.active {
+  color: var(--accent-color);
+}
+
+.nav-item.active i {
+  color: var(--accent-color);
+}
+
+.nav-item.active span {
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   토스트 (플로팅 헤어라인 알림)
+   ========================================================================== */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(82px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(14px);
+  background: var(--surface-elevated);
+  color: #FFFFFF;
+  border: 1px solid var(--border-color);
+  padding: 9px 18px;
+  border-radius: var(--border-radius-pill);
+  font-size: 0.82rem;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 2500;
+  max-width: 84%;
+  text-align: center;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ==========================================================================
+   로딩 오버레이
+   ========================================================================== */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  flex-direction: column;
+  color: white;
+}
+
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top: 3px solid var(--accent-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 14px;
+}
+
+#loading-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #FFFFFF;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   모달 공통 (수정/추가/경유지/얼럿)
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+  padding: 20px;
+}
+
+.modal-overlay.active {
+  display: flex;
+  animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-card {
+  background: var(--surface-color);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-card);
+  padding: 20px;
+  width: 100%;
+  max-width: 360px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-card h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.modal-field {
+  margin-bottom: 14px;
+}
+
+.modal-field label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.modal-field input,
+.modal-field textarea {
+  width: 100%;
+  background: var(--surface-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  resize: none;
+  font-family: inherit;
+  transition: border-color 0.18s ease;
+  outline: none;
+}
+
+.modal-field input:focus,
+.modal-field textarea:focus {
+  border-color: var(--accent-color);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 11px 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.18s cubic-bezier(0.25, 1, 0.5, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-btn:active {
+  transform: scale(0.96);
+}
+
+.modal-btn-cancel {
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.modal-btn-save {
+  background: var(--accent-color);
+  color: white;
+}
+
+#alert-message {
+  color: var(--text-main);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   NFC 가이드 및 설정 보조 UI
+   ========================================================================== */
+.nfc-url-box {
+  background: var(--surface-card) !important;
+  border: 1px solid var(--border-color);
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  margin-bottom: 14px !important;
+}
+.nfc-url-box code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem !important;
+  color: var(--accent-color) !important;
+  font-weight: 600;
+}
+.nfc-copy-btn {
+  background: var(--accent-color) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 5px 10px !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.nfc-copy-btn:active {
+  transform: scale(0.92);
+}
+
+.setting-sub-info {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  padding-bottom: 11px;
+  margin-top: 1px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  line-height: 1.5;
+}
+.setting-sub-info:empty {
+  display: none;
+}
+.setting-sub-info:last-child {
+  border-bottom: none;
+  padding-bottom: 6px;
+}
+.setting-sub-info > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+.setting-sub-info i,
+.setting-sub-info svg {
+  width: 9.5px !important;
+  height: 9.5px !important;
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+
+
