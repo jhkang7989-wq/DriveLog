@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v36'; // 자가복구 진단용 토스트 제거
+const CACHE_NAME = 'drive-log-v37'; // DriveLogPro 데이터 백업/복원 네이티브 브릿지 연결
 const ASSETS = [
   './index.html',
   './style.css',

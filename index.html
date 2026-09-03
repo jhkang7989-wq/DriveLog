@@ -25,7 +25,7 @@
   <meta name="theme-color" content="#1E1E1E">
   
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="style.css?v=36">
+  <link rel="stylesheet" href="style.css?v=37">
 
 </head>
 <body>
@@ -148,7 +148,7 @@
       <div id="last-backup-label" style="font-size:0.7rem; color:var(--text-muted); margin: -8px 4px 8px 4px;"></div>
       <div class="setting-item">
         <div class="setting-label"><i data-lucide="upload-cloud"></i> 데이터 복원</div>
-        <button class="setting-action" onclick="triggerHaptic(); document.getElementById('restore-file-input').click()"><i data-lucide="upload"></i></button>
+        <button class="setting-action" onclick="triggerRestore()"><i data-lucide="upload"></i></button>
         <input type="file" id="restore-file-input" accept="application/json" style="display:none;" onchange="handleRestoreFile(event)">
       </div>
       <div class="setting-item">
@@ -297,10 +297,10 @@
   </div>
 </div>
 
-<script src="js/app-core.js?v=36"></script>
-<script src="js/app-location.js?v=36"></script>
-<script src="js/app-drive.js?v=36"></script>
-<script src="js/app-history.js?v=36"></script>
-<script src="js/app-data.js?v=36"></script>
+<script src="js/app-core.js?v=37"></script>
+<script src="js/app-location.js?v=37"></script>
+<script src="js/app-drive.js?v=37"></script>
+<script src="js/app-history.js?v=37"></script>
+<script src="js/app-data.js?v=37"></script>
 </body>
 </html>

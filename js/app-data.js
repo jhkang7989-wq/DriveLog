@@ -174,6 +174,15 @@ async function exportBackup() {
   const jsonContent = JSON.stringify(appState, null, 2);
   const fixedFilename = '운행기록_백업.json'; // 날짜 안 붙임 — 매번 같은 이름으로 저장되게
 
+  // DriveLogPro(네이티브 웹뷰)는 일반 WebView라 <a download>/showSaveFilePicker 둘 다 안 먹힘
+  // (WebView는 다운로드를 기본 지원 안 함) — 네이티브가 직접 다운로드 폴더에 저장하도록 위임
+  if (window.AndroidBridge && typeof window.AndroidBridge.saveJsonBackup === 'function') {
+    const result = callNativeBridge('saveJsonBackup', jsonContent, fixedFilename);
+    if (result === 'OK') { recordBackupTime(); await showAlert('다운로드 폴더에 저장됐습니다.'); }
+    else { await showAlert('백업 저장 실패: ' + result); }
+    return;
+  }
+
   // 지원되는 브라우저(주로 PC 크롬 계열)는 저장 위치를 직접 골라 진짜 덮어쓰기 가능
   if (window.showSaveFilePicker) {
     try {
@@ -205,6 +214,18 @@ async function exportBackup() {
   recordBackupTime();
 }
 
+// 데이터 복원 버튼 — DriveLogPro(네이티브 웹뷰)는 표준 <input type="file">이 이 기기에서
+// "파일을 읽는 중 오류"로 실패하는 게 확인돼서(선택은 되는데 내용 읽기가 안 됨), 네이티브가
+// 파일 선택+읽기를 직접 처리하는 브릿지로 완전히 우회함. 그 외(PWA/TWA)는 기존 방식 그대로.
+function triggerRestore() {
+  triggerHaptic();
+  if (window.AndroidBridge && typeof window.AndroidBridge.pickBackupFile === 'function') {
+    callNativeBridge('pickBackupFile');
+  } else {
+    document.getElementById('restore-file-input').click();
+  }
+}
+
 async function handleRestoreFile(event) {
   const file = event.target.files[0];
   event.target.value = ''; // 같은 파일을 다시 선택할 수 있도록 초기화
@@ -212,7 +233,24 @@ async function handleRestoreFile(event) {
 
   try {
     const text = await file.text();
-    const parsed = JSON.parse(text);
+    await applyBackupJson(text);
+  } catch (e) {
+    console.error('백업 복원 오류:', e);
+    await showAlert('파일을 읽는 중 오류가 발생했습니다.\n올바른 JSON 백업 파일인지 확인해주세요.');
+  }
+}
+
+// DriveLogPro 네이티브 브릿지가 파일을 직접 읽어서 여기로 내용을 전달함 (MainActivity.deliverBackupFileToWeb).
+// jsonText가 null이면 파일 선택 취소 또는 네이티브 측 읽기 실패.
+window.onNativeBackupFilePicked = function(jsonText) {
+  if (jsonText === null || jsonText === undefined) return;
+  applyBackupJson(jsonText);
+};
+
+// handleRestoreFile / onNativeBackupFilePicked 양쪽이 공유하는 실제 복원 로직
+async function applyBackupJson(jsonText) {
+  try {
+    const parsed = JSON.parse(jsonText);
 
     if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.records)) {
       await showAlert('올바른 백업 파일이 아닙니다.');
