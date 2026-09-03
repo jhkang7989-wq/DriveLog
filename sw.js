@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v35'; // 자가복구 진단용 토스트 추가(임시)
+const CACHE_NAME = 'drive-log-v36'; // 자가복구 진단용 토스트 제거
 const ASSETS = [
   './index.html',
   './style.css',

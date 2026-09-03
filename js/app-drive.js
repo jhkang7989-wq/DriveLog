@@ -127,13 +127,9 @@ async function drainPendingNativeWaypoints() {
 // 재시도가 실패해도 계속 반복 시도/알림 스팸하지 않도록 한 번 시도 후 복구 확인될 때까지 대기.
 let nativeTrackingRecoveryAttempted = false;
 function recoverNativeTrackingIfNeeded() {
-  if (!window.AndroidBridge) return;
+  if (!appState.isRunning || !window.AndroidBridge) return;
 
-  // TODO(임시 진단용): 자가복구가 왜 안 걸리는지 원인 파악되면 이 토스트는 제거할 것
   const active = callNativeBridge('isTrackingActive');
-  showToast(`[진단] isRunning=${appState.isRunning} active=${active}`, 4000);
-
-  if (!appState.isRunning) return;
   if (active) { nativeTrackingRecoveryAttempted = false; return; }
   if (nativeTrackingRecoveryAttempted) return;
 
