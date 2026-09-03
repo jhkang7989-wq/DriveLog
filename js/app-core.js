@@ -31,8 +31,18 @@ function callNativeBridge(methodName, ...args) {
 // 도착 시점에도 한 번 더 확인하지만(app-drive.js), 운행 중에 화면을 보고 있다면 그때그때
 // 바로 반영되는 게 자연스러워서 20초 간격으로도 확인한다. 기존 DriveLog(TWA)/브라우저에는
 // window.AndroidBridge 자체가 없어서 이 setInterval은 등록만 되고 매번 조용히 아무 일도 안 함.
+// 같은 주기로 네이티브 추적 서비스가 예기치 않게 죽어있는지도 확인해서 자동 복구를 시도한다
+// (제조사 알림 정리 등으로 서비스가 죽는 문제 대응 — recoverNativeTrackingIfNeeded in app-drive.js).
 if (window.AndroidBridge) {
-  setInterval(() => drainPendingNativeWaypoints(), 20000);
+  setInterval(() => {
+    drainPendingNativeWaypoints();
+    recoverNativeTrackingIfNeeded();
+  }, 20000);
+  // 앱을 다시 열었을 때(백그라운드→포그라운드) 20초를 기다리지 않고 바로 한 번 더 확인 —
+  // 사용자가 "알림이 없어졌네" 하고 앱을 여는 순간 최대한 빨리 복구되도록
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) recoverNativeTrackingIfNeeded();
+  });
 }
 
 // 서비스워커 등록 (에셋 캐싱 → 오프라인 지원용).

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v33'; // 경유지 최대 기록 개수 10 -> 30 상향
+const CACHE_NAME = 'drive-log-v34'; // DriveLogPro 추적 서비스 자가복구 로직 추가
 const ASSETS = [
   './index.html',
   './style.css',

@@ -12,6 +12,7 @@ async function toggleDrive() {
     appState.currentTrip = { id: Date.now(), startTime: new Date().toISOString(), startLat: loc.lat, startLng: loc.lng, startAddrRoad: addr.road, startAddrJibun: addr.jibun, waypoints: [] };
     appState.isRunning = true;
     saveData();
+    nativeTrackingRecoveryAttempted = false;
     callNativeBridge('startTracking');
   } else {
     // 도착 확정 전, 그사이 백그라운드에서 자동 감지된 정차가 있으면 먼저 경유지로 반영해서
@@ -118,6 +119,23 @@ async function drainPendingNativeWaypoints() {
   callNativeBridge('clearPendingWaypoints');
 
   if (addedCount > 0) showToast(`🚗 자동 감지된 정차 ${addedCount}건이 경유지로 기록됐어요.`);
+}
+
+// 제조사 알림 정리("전체 지우기" 등)로 DriveLogPro 네이티브 추적 서비스가 예기치 않게 죽는 경우가
+// 있어서(삼성 원UI 등, setOngoing으로도 못 막음 확인됨), 웹이 "운행 중"으로 아는데 네이티브 서비스가
+// 실제로는 안 살아있는 상태를 주기적으로 감지해서 조용히 재시작하는 자가복구 로직.
+// 재시도가 실패해도 계속 반복 시도/알림 스팸하지 않도록 한 번 시도 후 복구 확인될 때까지 대기.
+let nativeTrackingRecoveryAttempted = false;
+function recoverNativeTrackingIfNeeded() {
+  if (!appState.isRunning || !window.AndroidBridge) return;
+
+  const active = callNativeBridge('isTrackingActive');
+  if (active) { nativeTrackingRecoveryAttempted = false; return; }
+  if (nativeTrackingRecoveryAttempted) return;
+
+  nativeTrackingRecoveryAttempted = true;
+  callNativeBridge('startTracking');
+  showToast('⚠️ 추적이 중단되어 자동으로 재시작했습니다.');
 }
 
 function updateWaypointButtonVisibility() {
