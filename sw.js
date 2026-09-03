@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v39'; // 뷰포트/글씨크기 진단용 배너 추가(임시)
+const CACHE_NAME = 'drive-log-v40'; // 진단용 배너 제거
 const ASSETS = [
   './index.html',
   './style.css',
