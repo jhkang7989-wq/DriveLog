@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v34'; // DriveLogPro 추적 서비스 자가복구 로직 추가
+const CACHE_NAME = 'drive-log-v35'; // 자가복구 진단용 토스트 추가(임시)
 const ASSETS = [
   './index.html',
   './style.css',
