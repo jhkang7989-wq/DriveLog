@@ -185,7 +185,13 @@ function renderHistory() {
             </div>
             <div class="card-addr-row"><span class="card-addr-label">출발</span>${formatFullAddress(sAddr)}</div>
             <div class="card-addr-row"><span class="card-addr-label">도착</span>${formatFullAddress(eAddr)}</div>
-            ${r.note ? (r.note.startsWith('⚠️') ? `<div class="card-note-badge card-note-warning">${r.note}</div>` : `<div class="card-note-badge">비고 : ${r.note}</div>`) : ''}
+            ${r.note ? (() => {
+              const isWarn = r.note.includes('추정치');
+              const cleanNote = r.note.replace(/[✏️⚠️]/gu, '').trim();
+              return isWarn
+                ? `<div class="card-note-badge card-note-warning">${cleanNote}</div>`
+                : `<div class="card-note-badge">비고 : ${cleanNote}</div>`;
+            })() : ''}
           </div>
         </div>`;
       });
@@ -205,7 +211,7 @@ let currentlyOpenSwipeCard = null; // 지금 열려있는(스와이프된) 카�
 
 function closeOpenSwipeCard() {
   if (currentlyOpenSwipeCard) {
-    currentlyOpenSwipeCard.style.transition = 'transform 0.25s ease';
+    currentlyOpenSwipeCard.style.transition = 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1)';
     currentlyOpenSwipeCard.style.transform = 'translateX(0)';
     currentlyOpenSwipeCard = null;
   }
@@ -213,10 +219,9 @@ function closeOpenSwipeCard() {
 
 function attachSwipeHandlers() {
   document.querySelectorAll('.timeline-card').forEach(card => {
-    let startX = 0, startY = 0, currentX = 0, dragging = false, moved = false, axisLocked = null; // axisLocked: null(미판정) | 'x'(가로 스와이프) | 'y'(세로 스크롤)
+    let startX = 0, startY = 0, currentX = 0, dragging = false, moved = false, axisLocked = null;
 
     const onStart = (x, y) => {
-      // 다른 카드가 열려있었다면 이번 카드 조작 시작과 동시에 자동으로 닫기
       if (currentlyOpenSwipeCard && currentlyOpenSwipeCard !== card) {
         closeOpenSwipeCard();
       }
@@ -227,26 +232,31 @@ function attachSwipeHandlers() {
       const dx = x - startX;
       const dy = y - startY;
 
-      // 방향이 뚜렷해지기 전(대각선 초반 움직임)까진 판단 보류 — 목록을 세로로 스크롤하려던 손가락이
-      // 살짝 대각선으로 흔들렸다고 바로 삭제 버튼이 열리는 걸 방지
+      // 방향이 뚜렷해지기 전까진 판단 보류
       if (axisLocked === null) {
         if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-        axisLocked = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y';
+        if (Math.abs(dx) > Math.abs(dy) * 1.3) {
+          axisLocked = 'x';
+          startX = x; // 0부터 부드럽게 선형 이동하도록 기준점 동기화 (순간이동 튐 방지)
+        } else {
+          axisLocked = 'y';
+          return;
+        }
       }
-      if (axisLocked === 'y') return; // 세로 스크롤 의도로 판정 -> 카드는 움직이지 않음
+      if (axisLocked !== 'x') return;
 
-      // 왼쪽으로만 밀리게 제한 (오른쪽으로는 안 열림), 최대 SWIPE_OPEN_PX 만큼만
-      let delta = Math.min(0, Math.max(dx, -SWIPE_OPEN_PX));
-      if (Math.abs(delta) > 5) moved = true;
+      // 왼쪽으로만 밀리게 제한, 최대 SWIPE_OPEN_PX 만큼 부드럽게 추종
+      let delta = Math.min(0, Math.max(x - startX, -SWIPE_OPEN_PX));
+      if (Math.abs(delta) > 3) moved = true;
       currentX = delta;
       card.style.transform = `translateX(${currentX}px)`;
     };
     const onEnd = () => {
       if (!dragging) return;
       dragging = false;
-      card.style.transition = 'transform 0.25s ease';
-      // 가로 스와이프로 판정된 상태에서 충분히(65% 이상) 밀렸을 때만 완전히 열어서 고정, 아니면 원위치
-      if (axisLocked === 'x' && currentX < -SWIPE_OPEN_PX * 0.65) {
+      card.style.transition = 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1)';
+      // 가로 스와이프로 50% 이상 밀렸을 때 부드럽게 안착, 아니면 제자리 복귀
+      if (axisLocked === 'x' && currentX < -SWIPE_OPEN_PX * 0.5) {
         card.style.transform = `translateX(-${SWIPE_OPEN_PX}px)`;
         currentlyOpenSwipeCard = card;
       } else {
@@ -258,6 +268,7 @@ function attachSwipeHandlers() {
     card.addEventListener('touchstart', e => onStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
     card.addEventListener('touchmove', e => onMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
     card.addEventListener('touchend', onEnd);
+    card.addEventListener('touchcancel', onEnd);
 
     // 데스크톱 테스트용 마우스 지원
     card.addEventListener('mousedown', e => onStart(e.clientX, e.clientY));
@@ -330,7 +341,7 @@ async function saveAddModal() {
     startAddrRoad: startAddr, startAddrJibun: startAddr,
     endAddrRoad: endAddr, endAddrJibun: endAddr,
     distance: distanceVal,
-    note: document.getElementById('add-note').value.trim() || '✏️ 수동 입력'
+    note: document.getElementById('add-note').value.trim() || '수동 입력'
   });
   saveData();
   expandedDates.add(dateVal); // 방금 추가한 날짜는 펼쳐서 바로 보이게

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v40'; // 진단용 배너 제거
+const CACHE_NAME = 'drive-log-v47'; // 총 km 폰트 확대 & 스와이프 실크 감속 애니메이션
 const ASSETS = [
   './index.html',
   './style.css',

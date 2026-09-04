@@ -539,15 +539,15 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
 /* 날짜 아코디언 */
 .card-date {
   font-weight: 700;
-  margin: 10px 0 5px 0;
-  padding: 7px 11px;
+  margin: 12px 0 6px 0;
+  padding: 8px 12px;
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   cursor: pointer;
   color: var(--text-main);
   transition: background-color 0.18s ease;
@@ -556,25 +556,27 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
 .card-date-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .card-date-total {
-  font-weight: 800;
+  font-weight: 900;
   color: var(--accent-color);
-  font-size: 0.82rem;
+  font-size: 1.12rem;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   background: transparent;
   padding: 0;
   display: inline-flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2.5px;
+  gap: 2px;
 }
 .card-date-total::after {
   content: '';
   display: block;
-  width: 24px;
+  width: 100%;
+  min-width: 28px;
   height: 2px;
   background: var(--accent-color);
   border-radius: 2px;
@@ -583,8 +585,8 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
 
 .card-date .date-chevron {
   transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   color: var(--text-muted);
 }
 
@@ -650,7 +652,6 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
   color: white;
   cursor: pointer;
   z-index: 1;
-  border-left: 1px solid var(--border-color);
 }
 
 .timeline-card {
@@ -661,10 +662,12 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
   padding: 8px 12px;
   position: relative;
   margin-bottom: 0;
-  width: 100%;
+  width: calc(100% + 1px);
+  margin-right: -1px;
+  min-height: 100%;
   z-index: 2;
   touch-action: pan-y;
-  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 }
 
@@ -693,16 +696,22 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
 }
 
 .waypoint-badge {
-  font-size: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 19px;
+  line-height: 1;
+  padding: 0 7px;
+  font-size: 0.62rem;
   font-weight: 800;
   color: var(--accent-color);
   background: var(--accent-tint);
   border: 1px solid var(--accent-tint-border);
-  padding: 1.5px 6px;
   border-radius: var(--border-radius-pill);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  vertical-align: middle;
   transition: all 0.18s ease;
 }
 .waypoint-badge:active {
