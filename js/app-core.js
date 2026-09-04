@@ -27,6 +27,21 @@ function callNativeBridge(methodName, ...args) {
   }
 }
 
+// 앱을 자정 넘어서까지 계속 켜놓고 있으면 "오늘 누적 거리"가 어제 날짜 기준으로 멈춰있는 문제가
+// 있었음 — updateMainUI()가 운행 시작/종료 등 데이터가 바뀌는 시점에만 호출되고, 시간이 그냥
+// 흘러서 날짜가 바뀌는 것 자체로는 재계산이 안 됐기 때문. 5분마다 KST 기준 날짜가 바뀌었는지
+// 확인해서, 바뀌었으면 화면을 다시 계산함 (PWA/TWA/DriveLogPro 전부 해당하는 문제라 조건 없이 적용).
+// 자정 넘고 최대 5분 내 갱신되면 충분해서 간격을 넉넉하게 잡음 — 매번 하는 일도 날짜 문자열
+// 비교뿐이라 API 호출 같은 무거운 작업은 아니지만, 굳이 자주 돌 필요는 없음.
+let lastKnownKSTDate = getKSTDateString();
+setInterval(() => {
+  const nowKSTDate = getKSTDateString();
+  if (nowKSTDate !== lastKnownKSTDate) {
+    lastKnownKSTDate = nowKSTDate;
+    updateMainUI();
+  }
+}, 5 * 60 * 1000);
+
 // DriveLogPro에서 백그라운드로 감지된 정차(경유지 후보)를 주기적으로 확인해서 반영.
 // 도착 시점에도 한 번 더 확인하지만(app-drive.js), 운행 중에 화면을 보고 있다면 그때그때
 // 바로 반영되는 게 자연스러워서 20초 간격으로도 확인한다. 기존 DriveLog(TWA)/브라우저에는

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v50'; // 같은 휴게소 내 중복 경유 방지
+const CACHE_NAME = 'drive-log-v51'; // 자정 넘으면 오늘 누적거리 자동 갱신
 const ASSETS = [
   './index.html',
   './style.css',
