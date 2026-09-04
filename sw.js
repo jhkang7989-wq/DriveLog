@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v49'; // 휴게소 자동 라벨링 및 요약 구간분할 제외
+const CACHE_NAME = 'drive-log-v50'; // 같은 휴게소 내 중복 경유 방지
 const ASSETS = [
   './index.html',
   './style.css',

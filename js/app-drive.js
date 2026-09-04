@@ -68,11 +68,19 @@ async function addWaypointAtLocation(loc, { silent = false } = {}) {
     return false;
   }
 
-  const addr = await getAddressesFromCoords(loc.lat, loc.lng);
+  const trip = appState.currentTrip;
+  const lastWaypoint = trip.waypoints.length > 0 ? trip.waypoints[trip.waypoints.length - 1] : null;
   const restAreaName = findNearbyRestArea(loc.lat, loc.lng); // 휴게소 자동 라벨링 — 거래처/밭 방문과 구분용
 
-  const trip = appState.currentTrip;
-  const prevPoint = trip.waypoints.length > 0 ? trip.waypoints[trip.waypoints.length - 1] : { lat: trip.startLat, lng: trip.startLng };
+  // 같은 휴게소 안에서 짧게 이동(주차장→주유소 등)한 것만으로 정차감지가 "출발"로 오판해서 또
+  // 정차로 잡히는 경우가 실주행에서 확인됨 — 직전 경유지와 같은 휴게소 라벨이면 중복으로 보고 생략.
+  // (API 호출 전에 먼저 걸러서 불필요한 주소변환 호출도 아낀다)
+  if (restAreaName && lastWaypoint && lastWaypoint.restAreaName === restAreaName) {
+    return false;
+  }
+
+  const addr = await getAddressesFromCoords(loc.lat, loc.lng);
+  const prevPoint = lastWaypoint || { lat: trip.startLat, lng: trip.startLng };
   const legResult = await calculateDistance(prevPoint.lat, prevPoint.lng, loc.lat, loc.lng);
 
   trip.waypoints.push({
