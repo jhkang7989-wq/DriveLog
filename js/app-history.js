@@ -211,7 +211,7 @@ let currentlyOpenSwipeCard = null; // 지금 열려있는(스와이프된) 카�
 
 function closeOpenSwipeCard() {
   if (currentlyOpenSwipeCard) {
-    currentlyOpenSwipeCard.style.transition = 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1)';
+    currentlyOpenSwipeCard.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)';
     currentlyOpenSwipeCard.style.transform = 'translateX(0)';
     currentlyOpenSwipeCard = null;
   }
@@ -219,49 +219,105 @@ function closeOpenSwipeCard() {
 
 function attachSwipeHandlers() {
   document.querySelectorAll('.timeline-card').forEach(card => {
-    let startX = 0, startY = 0, currentX = 0, dragging = false, moved = false, axisLocked = null;
+    let startX = 0, startY = 0, currentX = 0, initialX = 0;
+    let dragging = false, moved = false, axisLocked = null;
+    let touchStartTime = 0, lastX = 0, lastTime = 0, velocityX = 0;
 
     const onStart = (x, y) => {
+      // 다른 카드가 열려있었다면 부드럽게 닫기
       if (currentlyOpenSwipeCard && currentlyOpenSwipeCard !== card) {
         closeOpenSwipeCard();
       }
-      startX = x; startY = y; dragging = true; moved = false; axisLocked = null; card.style.transition = 'none';
+
+      // 현재 카드의 열림 여부에 따른 초기 위치 기억 (닫혀있으면 0, 열려있으면 -64)
+      const isOpen = (currentlyOpenSwipeCard === card);
+      initialX = isOpen ? -SWIPE_OPEN_PX : 0;
+      currentX = initialX;
+
+      startX = x;
+      startY = y;
+      lastX = x;
+      touchStartTime = Date.now();
+      lastTime = touchStartTime;
+      velocityX = 0;
+      dragging = true;
+      moved = false;
+      axisLocked = null;
+      card.style.transition = 'none'; // 드래그 중에는 손끝 실시간 추종
     };
+
     const onMove = (x, y) => {
       if (!dragging) return;
       const dx = x - startX;
       const dy = y - startY;
 
-      // 방향이 뚜렷해지기 전까진 판단 보류
+      // 방향 판정: 초기 미세 흔들림(7px 이하) 무시
       if (axisLocked === null) {
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-        if (Math.abs(dx) > Math.abs(dy) * 1.3) {
+        if (Math.abs(dx) < 7 && Math.abs(dy) < 7) return;
+        if (Math.abs(dx) > Math.abs(dy) * 1.2) {
           axisLocked = 'x';
-          startX = x; // 0부터 부드럽게 선형 이동하도록 기준점 동기화 (순간이동 튐 방지)
         } else {
           axisLocked = 'y';
           return;
         }
       }
-      if (axisLocked !== 'x') return;
+      if (axisLocked !== 'x') return; // 세로 스크롤일 때는 카드 이동 없음
 
-      // 왼쪽으로만 밀리게 제한, 최대 SWIPE_OPEN_PX 만큼 부드럽게 추종
-      let delta = Math.min(0, Math.max(x - startX, -SWIPE_OPEN_PX));
-      if (Math.abs(delta) > 3) moved = true;
-      currentX = delta;
+      // 순간 속도 추적 (px/ms)
+      const now = Date.now();
+      const dt = now - lastTime;
+      if (dt > 10) {
+        velocityX = (x - lastX) / dt;
+        lastX = x;
+        lastTime = now;
+      }
+
+      // 새 위치 = 초기 위치 + 이동 거리
+      let targetX = initialX + dx;
+
+      // 한계점 완충 (오른쪽으로 넘기거나 왼쪽 최대치를 넘길 때 텐션)
+      if (targetX > 0) {
+        targetX = targetX * 0.2;
+      } else if (targetX < -SWIPE_OPEN_PX) {
+        const over = targetX + SWIPE_OPEN_PX;
+        targetX = -SWIPE_OPEN_PX + (over * 0.25);
+      }
+
+      if (Math.abs(dx) > 3) moved = true;
+      currentX = targetX;
       card.style.transform = `translateX(${currentX}px)`;
     };
+
     const onEnd = () => {
       if (!dragging) return;
       dragging = false;
-      card.style.transition = 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1)';
-      // 가로 스와이프로 50% 이상 밀렸을 때 부드럽게 안착, 아니면 제자리 복귀
-      if (axisLocked === 'x' && currentX < -SWIPE_OPEN_PX * 0.5) {
+
+      // 실크 스프링 감속 트랜지션 복원
+      card.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)';
+
+      if (axisLocked !== 'x') {
+        card.style.transform = `translateX(${initialX}px)`;
+        return;
+      }
+
+      // 1) 순간 제스처(플릭) 판정: 손가락을 휙 튕겼을 때
+      if (velocityX > 0.22) {
+        // 오른쪽으로 빠르게 튕김 -> 부드럽게 닫힘
+        card.style.transform = 'translateX(0)';
+        if (currentlyOpenSwipeCard === card) currentlyOpenSwipeCard = null;
+      } else if (velocityX < -0.22) {
+        // 왼쪽으로 빠르게 튕김 -> 부드럽게 열림
         card.style.transform = `translateX(-${SWIPE_OPEN_PX}px)`;
         currentlyOpenSwipeCard = card;
       } else {
-        card.style.transform = 'translateX(0)';
-        if (currentlyOpenSwipeCard === card) currentlyOpenSwipeCard = null;
+        // 2) 위치 기준 판정: 45% 이상 열렸는지 여부
+        if (currentX < -SWIPE_OPEN_PX * 0.45) {
+          card.style.transform = `translateX(-${SWIPE_OPEN_PX}px)`;
+          currentlyOpenSwipeCard = card;
+        } else {
+          card.style.transform = 'translateX(0)';
+          if (currentlyOpenSwipeCard === card) currentlyOpenSwipeCard = null;
+        }
       }
     };
 
@@ -279,6 +335,10 @@ function attachSwipeHandlers() {
     // 스와이프(드래그)가 아니었을 때만 편집 모달 열기
     card.addEventListener('click', () => {
       if (moved) { moved = false; return; }
+      if (currentlyOpenSwipeCard === card) {
+        closeOpenSwipeCard();
+        return;
+      }
       editRecord(parseInt(card.dataset.id));
     });
   });

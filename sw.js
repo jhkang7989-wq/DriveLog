@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v47'; // 총 km 폰트 확대 & 스와이프 실크 감속 애니메이션
+const CACHE_NAME = 'drive-log-v48'; // 총 km 밸런스 조정 & 스와이프 복귀 제스처 물리 엔진 개편
 const ASSETS = [
   './index.html',
   './style.css',

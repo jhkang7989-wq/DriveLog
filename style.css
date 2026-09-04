@@ -560,23 +560,22 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
 }
 
 .card-date-total {
-  font-weight: 900;
+  font-weight: 800;
   color: var(--accent-color);
-  font-size: 1.12rem;
-  letter-spacing: -0.02em;
+  font-size: 1.03rem;
+  letter-spacing: -0.015em;
   font-variant-numeric: tabular-nums;
   background: transparent;
   padding: 0;
   display: inline-flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
+  gap: 2.5px;
 }
 .card-date-total::after {
   content: '';
   display: block;
-  width: 100%;
-  min-width: 28px;
+  width: 24px;
   height: 2px;
   background: var(--accent-color);
   border-radius: 2px;
