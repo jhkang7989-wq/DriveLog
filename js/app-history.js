@@ -70,18 +70,29 @@ function buildRecordLegs(r) {
   if (!r.waypoints || r.waypoints.length === 0) return wholeTripLeg; // 경유지 없는 기록(과거 기록 포함)은 기존과 완전히 동일
 
   const points = [{ addr: startAddr }];
-  r.waypoints.forEach(w => points.push({ addr: addrOf(w.addrRoad, w.addrJibun), rawLeg: w.legDistanceKm }));
+  r.waypoints.forEach(w => points.push({ addr: addrOf(w.addrRoad, w.addrJibun), rawLeg: w.legDistanceKm, isRestArea: !!w.restAreaName }));
   points.push({ addr: endAddr, rawLeg: r.finalLegKm || 0 });
 
-  // 같은 지역이 연속되면 노드 하나로 합침(구간 경계가 되는 지점만 노드로 남김)
+  // 같은 지역이 연속되면 노드 하나로 합침(구간 경계가 되는 지점만 노드로 남김).
+  // 휴게소로 자동 인식된 경유지(isRestArea)는 지역 경계로 취급하지 않음 — 출발지에서 잠깐 다른
+  // 지역의 휴게소를 들렀다 온 것만으로 일지용 요약에 불필요한 구간이 생기면 헷갈리기 때문.
+  // 노드/last를 전혀 건드리지 않고 거리만 pendingCarry에 담아뒀다가 다음 "진짜" 지점에 그대로
+  // 얹어서 넘김 — 그래야 이 거리가 유실되지 않고 항상 어딘가의 실제 구간에 정확히 반영됨.
   const nodes = [];
+  let pendingCarry = 0;
   points.forEach(p => {
+    if (p.isRestArea) {
+      pendingCarry += (p.rawLeg || 0);
+      return;
+    }
     const region = extractRegion(p.addr);
     const last = nodes[nodes.length - 1];
+    const legWithCarry = (p.rawLeg || 0) + pendingCarry;
+    pendingCarry = 0;
     if (last && region && last._region === region) {
-      last.rawLegSum += (p.rawLeg || 0);
+      last.rawLegSum += legWithCarry;
     } else {
-      nodes.push({ addr: p.addr, _region: region, rawLegSum: p.rawLeg || 0 });
+      nodes.push({ addr: p.addr, _region: region, rawLegSum: legWithCarry });
     }
   });
   if (nodes.length <= 1) return wholeTripLeg; // 지역 추출 실패 등 예외 상황 — 통짜 구간으로 폴백
@@ -463,9 +474,10 @@ function renderWaypointModal() {
   r.waypoints.forEach((w, idx) => {
     const addr = appState.settings.addressPref === 'road' ? (w.addrRoad || w.addrJibun) : (w.addrJibun || w.addrRoad);
     const time = new Date(w.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Seoul'});
+    const restBadge = w.restAreaName ? `<span class="waypoint-rest-badge">${w.restAreaName}휴게소</span>` : '';
     html += `<div class="waypoint-item">
       <div class="waypoint-item-info">
-        <div class="waypoint-item-addr">${formatFullAddress(addr || '(주소 정보 없음)')}</div>
+        <div class="waypoint-item-addr">${formatFullAddress(addr || '(주소 정보 없음)')} ${restBadge}</div>
         <div class="waypoint-item-meta">${time} · 이전 구간 ${w.legDistanceKm.toFixed(1)}km</div>
       </div>
       <button class="waypoint-item-delete" onclick="deleteWaypoint(${idx})"><i data-lucide="x"></i></button>

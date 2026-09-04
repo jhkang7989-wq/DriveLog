@@ -138,6 +138,19 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R * c;
 }
 
+// 경유지가 전국 고속도로 휴게소(REST_AREAS, rest-areas-data.js) 근처인지 확인 — 자동 감지된 정차가
+// 거래처/밭 방문인지 그냥 휴게소 정차인지 나중에 내역에서 구분할 수 있게 라벨을 붙여주기 위함.
+// 반경 300m 이내면 매칭(휴게소 부지가 넓어서 진입로 쪽에서 찍혀도 잡히도록 여유를 둠).
+function findNearbyRestArea(lat, lng, radiusKm = 0.3) {
+  if (typeof REST_AREAS === 'undefined') return null;
+  for (const area of REST_AREAS) {
+    if (getDistanceFromLatLonInKm(lat, lng, area.lat, area.lng) <= radiusKm) {
+      return area.name;
+    }
+  }
+  return null;
+}
+
 async function fetchAndDisplayAddress(lat, lng) {
   const addr = await getAddressesFromCoords(lat, lng);
   const pref = appState.settings.addressPref;

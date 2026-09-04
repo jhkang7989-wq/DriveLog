@@ -1,8 +1,9 @@
-const CACHE_NAME = 'drive-log-v48'; // 총 km 밸런스 조정 & 스와이프 복귀 제스처 물리 엔진 개편
+const CACHE_NAME = 'drive-log-v49'; // 휴게소 자동 라벨링 및 요약 구간분할 제외
 const ASSETS = [
   './index.html',
   './style.css',
   './js/app-core.js',
+  './js/rest-areas-data.js',
   './js/app-location.js',
   './js/app-drive.js',
   './js/app-history.js',

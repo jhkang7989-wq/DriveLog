@@ -69,6 +69,7 @@ async function addWaypointAtLocation(loc, { silent = false } = {}) {
   }
 
   const addr = await getAddressesFromCoords(loc.lat, loc.lng);
+  const restAreaName = findNearbyRestArea(loc.lat, loc.lng); // 휴게소 자동 라벨링 — 거래처/밭 방문과 구분용
 
   const trip = appState.currentTrip;
   const prevPoint = trip.waypoints.length > 0 ? trip.waypoints[trip.waypoints.length - 1] : { lat: trip.startLat, lng: trip.startLng };
@@ -80,7 +81,8 @@ async function addWaypointAtLocation(loc, { silent = false } = {}) {
     lat: loc.lat, lng: loc.lng,
     addrRoad: addr.road, addrJibun: addr.jibun,
     legDistanceKm: legResult.distanceKm,
-    legEstimated: legResult.estimated
+    legEstimated: legResult.estimated,
+    restAreaName: restAreaName || undefined
   });
 
   saveData();

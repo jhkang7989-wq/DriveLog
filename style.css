@@ -853,6 +853,17 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
+.waypoint-rest-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--border-subtle);
+  border-radius: 6px;
+  vertical-align: middle;
+}
 .waypoint-item-delete {
   background: transparent;
   border: none;
