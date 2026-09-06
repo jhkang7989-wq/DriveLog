@@ -4,7 +4,7 @@ let lastAddressFetchLoc = null;
 let lastAddressFetchTime = 0;
 navigator.geolocation.watchPosition(
   (pos) => {
-    currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+    currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, timestamp: pos.timestamp };
     const acc = pos.coords.accuracy;
     const dot = document.getElementById('gps-dot');
     const txt = document.getElementById('gps-text');
@@ -39,23 +39,37 @@ navigator.geolocation.watchPosition(
 );
 
 // 출발/도착 확정 시 사용할 위치를 반환 — 이미 정확도가 충분히 좋으면 즉시,
-// 애매하면 최대 1.8초 동안 몇 번 더 측정해서 그중 가장 정확한 값을 골라 반환
+// 애매하면 최대 1.8초 동안 몇 번 더 측정해서 그중 가장 정확한 값을 골라 반환.
+//
+// currentLocation은 watchPosition이 마지막으로 갱신해둔 값인데, 앱이 백그라운드로 밀려나 있는
+// 동안엔 이 콜백 자체가 안 불릴 수 있어서(WebView가 화면 안 보이면 GPS 워치를 쉬게 함), 오래전
+// 위치(예: 아까 정차했던 곳)가 그대로 남아있을 수 있음. 도착 버튼을 눌렀을 때 이 오래된 값을
+// "지금 위치"로 착각해서 써버리면 실제로는 딴 데 있는데 엉뚱한 주소로 도착 기록이 남는 문제가
+// 생김 — 그래서 정확도만 보지 않고 GeolocationPosition.timestamp로 신선도도 함께 확인한다.
+const STALE_LOCATION_MS = 20000;
 function getBestLocation(maxWaitMs = 1800, goodAccuracyThreshold = 15) {
   return new Promise((resolve) => {
+    const isFresh = (loc) => loc && loc.timestamp != null && (Date.now() - loc.timestamp) <= STALE_LOCATION_MS;
+
     if (!currentLocation) { resolve(null); return; }
-    if (currentLocation.accuracy != null && currentLocation.accuracy <= goodAccuracyThreshold) {
+    if (isFresh(currentLocation) && currentLocation.accuracy != null && currentLocation.accuracy <= goodAccuracyThreshold) {
       resolve(currentLocation);
       return;
     }
-    let best = currentLocation;
+    // 처음부터 신선한 값이 없다는 건 방금 백그라운드에서 돌아왔을 가능성이 높다는 뜻 — 평소
+    // 기준(1.8초)으론 GPS가 다시 잡히기엔 너무 짧아서, 이 경우엔 최대 8초까지 기다려준다.
+    const effectiveMaxWaitMs = isFresh(currentLocation) ? maxWaitMs : Math.max(maxWaitMs, 8000);
+    let best = isFresh(currentLocation) ? currentLocation : null;
     const start = Date.now();
     const interval = setInterval(() => {
-      if (currentLocation && (best.accuracy == null || (currentLocation.accuracy != null && currentLocation.accuracy < best.accuracy))) {
+      if (isFresh(currentLocation) && (!best || best.accuracy == null || (currentLocation.accuracy != null && currentLocation.accuracy < best.accuracy))) {
         best = currentLocation;
       }
-      if (Date.now() - start >= maxWaitMs || (best.accuracy != null && best.accuracy <= goodAccuracyThreshold)) {
+      if (Date.now() - start >= effectiveMaxWaitMs || (best && best.accuracy != null && best.accuracy <= goodAccuracyThreshold)) {
         clearInterval(interval);
-        resolve(best);
+        // maxWaitMs를 다 기다려도 신선한 위치를 못 얻었으면(오래 백그라운드에 있었던 경우), 없는
+        // 것보다는 낫다고 보고 오래된 값이라도 마지막 수단으로 사용한다.
+        resolve(best || currentLocation);
       }
     }, 300);
   });

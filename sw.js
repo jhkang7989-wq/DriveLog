@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v51'; // 자정 넘으면 오늘 누적거리 자동 갱신
+const CACHE_NAME = 'drive-log-v53'; // 도착 확정을 API 호출 전에 즉시 저장(치명적 버그 수정)
 const ASSETS = [
   './index.html',
   './style.css',

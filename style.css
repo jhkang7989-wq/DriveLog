@@ -424,7 +424,9 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
   width: fit-content;
   min-width: 110px;
   height: 42px;
-  padding: 0 28px;
+  line-height: 1;
+  padding: 2px 28px 0 28px;
+  box-sizing: border-box;
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--accent-color);
@@ -698,9 +700,10 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 19px;
+  height: 20px;
   line-height: 1;
-  padding: 0 7px;
+  padding: 2px 7px 0 7px;
+  box-sizing: border-box;
   font-size: 0.62rem;
   font-weight: 800;
   color: var(--accent-color);

@@ -15,41 +15,90 @@ async function toggleDrive() {
     nativeTrackingRecoveryAttempted = false;
     callNativeBridge('startTracking');
   } else {
-    // 도착 확정 전, 그사이 백그라운드에서 자동 감지된 정차가 있으면 먼저 경유지로 반영해서
-    // 최종 거리 계산에 빠짐없이 포함되게 함
-    await drainPendingNativeWaypoints();
-
-    const endAddr = await getAddressesFromCoords(loc.lat, loc.lng);
     const trip = appState.currentTrip;
+
+    // 도착 확정 전, 그사이 백그라운드에서 자동 감지된 정차가 있으면 경유지로 반영 — 단, 여기선
+    // 주소조회/거리계산 API를 부르지 않고 좌표만 빠르게 편입시킨다("★ 즉시 확정" 참고, 정밀
+    // 주소/거리는 트립을 닫은 뒤 아래에서 마저 채운다). 실시간 경유 버튼/평상시 20초 주기 드레인은
+    // 그쪽 나름대로 서두를 이유가 없어서 여전히 addWaypointAtLocation을 그대로 씀.
+    const newlyDrained = fastDrainPendingNativeWaypoints(trip);
+
     const waypoints = trip.waypoints || [];
 
     // 총거리 = 출발→경유1→경유2→...→도착 순으로 이어지는 구간 거리의 합
     // (경유지가 없으면 lastPoint가 출발지가 되어 기존 방식과 동일하게 동작)
     const lastPoint = waypoints.length > 0 ? waypoints[waypoints.length - 1] : { lat: trip.startLat, lng: trip.startLng };
-    const finalLegResult = await calculateDistance(lastPoint.lat, lastPoint.lng, loc.lat, loc.lng);
 
-    const rawTotalKm = waypoints.reduce((sum, w) => sum + w.legDistanceKm, 0) + finalLegResult.distanceKm;
-    const anyEstimated = waypoints.some(w => w.legEstimated) || finalLegResult.estimated;
-    // 계기판 오차 보정은 구간마다가 아니라 전체 합산 거리에 딱 한 번만 적용 (반올림 오차 누적 방지)
-    let finalDistance = Math.round((rawTotalKm * (1 + (appState.settings.offsetPercent / 100))) * 10) / 10;
+    // ★ 주소 변환/정밀 거리 계산(둘 다 API 호출, 최대 8초씩)을 기다리기 전에 "운행 종료" 자체부터
+    // 먼저 확정해서 저장한다 — 실사용 중 이 두 API 호출이 끝나기 전에 앱이 백그라운드로 밀려나거나
+    // 강제 종료되면, isRunning이 true로 남아버려서 도착 처리한 게 통째로 사라지고 "도착이 다시
+    // 풀린 것처럼" 보이는 문제가 있었음(그 사이 네이티브 추적도 안 멈춰서, 나중에 도착을 다시 누르면
+    // 그동안 더 쌓인 경유/거리까지 한 여행에 합쳐져 거리가 말도 안 되게 커지는 2차 피해로 이어짐).
+    // 우선 직선거리 기반 추정치로 즉시 기록을 남기고, 아래에서 정밀 계산이 끝나는 대로 같은 기록을
+    // patch한다 — 기존에 API 실패 시 쓰던 "⚠️ 거리 추정치" 표시 방식을 그대로 재사용.
+    const straightFinalKm = getDistanceFromLatLonInKm(lastPoint.lat, lastPoint.lng, loc.lat, loc.lng);
+    const provisionalRawTotal = waypoints.reduce((sum, w) => sum + w.legDistanceKm, 0) + straightFinalKm * 1.3;
+    const provisionalDistance = Math.round((provisionalRawTotal * (1 + (appState.settings.offsetPercent / 100))) * 10) / 10;
 
+    const recordId = trip.id;
     if (!appState.records) appState.records = [];
     appState.records.push({
-      id: trip.id, date: getKSTDateString(), startTime: trip.startTime, endTime: new Date().toISOString(),
+      id: recordId, date: getKSTDateString(), startTime: trip.startTime, endTime: new Date().toISOString(),
       startLat: trip.startLat, startLng: trip.startLng, endLat: loc.lat, endLng: loc.lng,
-      startAddrRoad: trip.startAddrRoad, startAddrJibun: trip.startAddrJibun, endAddrRoad: endAddr.road, endAddrJibun: endAddr.jibun,
-      waypoints: waypoints, finalLegKm: finalLegResult.distanceKm, finalLegEstimated: finalLegResult.estimated,
-      distance: finalDistance, note: anyEstimated ? "⚠️ 거리 추정치(직선거리 기반)" : ""
+      startAddrRoad: trip.startAddrRoad, startAddrJibun: trip.startAddrJibun,
+      endAddrRoad: `(확인중) 위도:${loc.lat.toFixed(4)}`, endAddrJibun: `(확인중) 경도:${loc.lng.toFixed(4)}`,
+      waypoints: waypoints, finalLegKm: straightFinalKm * 1.3, finalLegEstimated: true,
+      distance: provisionalDistance, note: "⚠️ 거리 추정치(직선거리 기반)"
     });
 
     appState.isRunning = false;
     appState.currentTrip = null;
     saveData();
     callNativeBridge('stopTracking');
+    showLoading(false);
+
+    // 여기서부터는 이미 "출발" 버튼으로 돌아간 뒤 — 정밀 주소/거리를 뒤늦게 계산해서 같은 기록에 반영.
+    // 방금 fastDrainPendingNativeWaypoints로 좌표만 빠르게 편입됐던 경유지들도 여기서 마저 정밀화한다
+    // (lat/lng는 안 바뀌니 순서와 무관하게 안전 — waypoints 배열은 이미 저장된 기록과 참조를 공유해서
+    // 여기서 값을 채우면 그 기록에도 그대로 반영됨).
+    for (const wp of newlyDrained) {
+      const idx = waypoints.indexOf(wp);
+      const prevPoint = idx > 0 ? waypoints[idx - 1] : { lat: trip.startLat, lng: trip.startLng };
+      const [wpAddr, wpLeg] = await Promise.all([
+        getAddressesFromCoords(wp.lat, wp.lng),
+        calculateDistance(prevPoint.lat, prevPoint.lng, wp.lat, wp.lng)
+      ]);
+      wp.addrRoad = wpAddr.road;
+      wp.addrJibun = wpAddr.jibun;
+      wp.legDistanceKm = wpLeg.distanceKm;
+      wp.legEstimated = wpLeg.estimated;
+    }
+
+    // ★주의: 총거리/note는 위 경유지 정밀화와 아래 도착주소/최종구간 정밀화가 "전부" 끝난 뒤
+    // 딱 한 번만 재계산한다 — 일부만 끝난 채로 먼저 확정해버리면 절반은 정밀·절반은 추정인 상태로
+    // 총거리가 어중간하게 저장될 수 있음.
+    const endAddr = await getAddressesFromCoords(loc.lat, loc.lng);
+    const finalLegResult = await calculateDistance(lastPoint.lat, lastPoint.lng, loc.lat, loc.lng);
+    const rawTotalKm = waypoints.reduce((sum, w) => sum + w.legDistanceKm, 0) + finalLegResult.distanceKm;
+    const anyEstimated = waypoints.some(w => w.legEstimated) || finalLegResult.estimated;
+    // 계기판 오차 보정은 구간마다가 아니라 전체 합산 거리에 딱 한 번만 적용 (반올림 오차 누적 방지)
+    const finalDistance = Math.round((rawTotalKm * (1 + (appState.settings.offsetPercent / 100))) * 10) / 10;
+
+    const rec = (appState.records || []).find(r => r.id === recordId);
+    if (rec) {
+      rec.endAddrRoad = endAddr.road;
+      rec.endAddrJibun = endAddr.jibun;
+      rec.finalLegKm = finalLegResult.distanceKm;
+      rec.finalLegEstimated = finalLegResult.estimated;
+      rec.distance = finalDistance;
+      rec.note = anyEstimated ? "⚠️ 거리 추정치(직선거리 기반)" : "";
+      saveData();
+    }
 
     if (anyEstimated) {
       document.getElementById('location-text').innerHTML = `<span style="color:#FFB74D;">거리 계산 API 오류 발생</span><br>(직선거리 기반으로 추정 계산되었습니다)`;
     }
+    return;
   }
   showLoading(false);
 }
@@ -108,9 +157,54 @@ async function addWaypoint() {
   await addWaypointAtLocation(loc);
 }
 
+// toggleDrive() 도착 처리 전용 — drainPendingNativeWaypoints와 하는 일은 같지만(네이티브에
+// 쌓인 정차 좌표를 경유지로 편입), 주소조회/거리계산 API를 아예 안 부르고 좌표만 즉시 편입시킨다.
+// 도착 확정 자체를 최대한 빨리 끝내기 위함(자세한 이유는 toggleDrive의 "★" 주석 참고) — 정밀
+// 주소/거리는 트립을 닫은 뒤 toggleDrive에서 마저 채운다. 반환값(새로 추가된 경유지 객체 배열)을
+// 그 후속 정밀화 단계가 그대로 사용한다.
+function fastDrainPendingNativeWaypoints(trip) {
+  const added = [];
+  const raw = callNativeBridge('getPendingWaypoints');
+  if (!raw) return added;
+
+  let points;
+  try { points = JSON.parse(raw); } catch (e) { return added; }
+  if (!Array.isArray(points) || points.length === 0) return added;
+
+  if (!trip.waypoints) trip.waypoints = [];
+
+  for (const point of points) {
+    if (trip.waypoints.length >= MAX_WAYPOINTS) break;
+
+    const lastWaypoint = trip.waypoints.length > 0 ? trip.waypoints[trip.waypoints.length - 1] : null;
+    const restAreaName = findNearbyRestArea(point.lat, point.lng);
+    // addWaypointAtLocation과 동일한 휴게소 중복 방지 로직 (자세한 이유는 그쪽 주석 참고)
+    if (restAreaName && lastWaypoint && lastWaypoint.restAreaName === restAreaName) continue;
+
+    const prevPoint = lastWaypoint || { lat: trip.startLat, lng: trip.startLng };
+    const straightKm = getDistanceFromLatLonInKm(prevPoint.lat, prevPoint.lng, point.lat, point.lng);
+
+    const wp = {
+      id: Date.now() + added.length,
+      timestamp: new Date().toISOString(),
+      lat: point.lat, lng: point.lng,
+      addrRoad: `(확인중) 위도:${point.lat.toFixed(4)}`, addrJibun: `(확인중) 경도:${point.lng.toFixed(4)}`,
+      legDistanceKm: straightKm * 1.3,
+      legEstimated: true,
+      restAreaName: restAreaName || undefined
+    };
+    trip.waypoints.push(wp);
+    added.push(wp);
+  }
+
+  callNativeBridge('clearPendingWaypoints');
+  return added;
+}
+
 // DriveLogPro 백그라운드 정차 감지로 쌓인 경유지 후보를 반영. 네이티브는 좌표/시각만 넘기고,
 // 주소 변환·거리 계산은 여기서(addWaypointAtLocation) 기존 로직을 그대로 재사용해 처리한다.
 // 기존 DriveLog(TWA)/브라우저에는 callNativeBridge가 항상 undefined를 반환하니 완전히 안전.
+// (실시간 경유 버튼/평상시 20초 주기 자동 감지 전용 — 도착 처리 전용은 위 fastDrainPendingNativeWaypoints)
 async function drainPendingNativeWaypoints() {
   if (!appState.isRunning || !appState.currentTrip) return;
 
