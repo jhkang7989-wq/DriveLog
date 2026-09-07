@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v53'; // 도착 확정을 API 호출 전에 즉시 저장(치명적 버그 수정)
+const CACHE_NAME = 'drive-log-v54'; // 출발 확정도 API 호출 전에 즉시 저장
 const ASSETS = [
   './index.html',
   './style.css',

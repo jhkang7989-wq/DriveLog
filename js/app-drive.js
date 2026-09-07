@@ -8,12 +8,29 @@ async function toggleDrive() {
   const loc = await getBestLocation(); // 정확도 좋으면 즉시, 애매하면 짧게 재측정해서 가장 정확한 좌표 사용
 
   if (!appState.isRunning) {
-    const addr = await getAddressesFromCoords(loc.lat, loc.lng);
-    appState.currentTrip = { id: Date.now(), startTime: new Date().toISOString(), startLat: loc.lat, startLng: loc.lng, startAddrRoad: addr.road, startAddrJibun: addr.jibun, waypoints: [] };
+    // ★ 도착 쪽과 동일한 이유로, 주소 조회(최대 8초)를 기다리기 전에 "운행 시작" 자체부터 먼저
+    // 확정해서 저장한다 — 이 대기 중에 앱이 백그라운드로 밀리면 출발 자체가 저장 안 된 채 날아가서
+    // "출발이 풀린 것"처럼 보이는 문제가 있었음. 주소는 우선 좌표 표시로 채워두고 아래에서 patch.
+    const tripId = Date.now();
+    appState.currentTrip = {
+      id: tripId, startTime: new Date().toISOString(), startLat: loc.lat, startLng: loc.lng,
+      startAddrRoad: `(확인중) 위도:${loc.lat.toFixed(4)}`, startAddrJibun: `(확인중) 경도:${loc.lng.toFixed(4)}`,
+      waypoints: []
+    };
     appState.isRunning = true;
     saveData();
     nativeTrackingRecoveryAttempted = false;
     callNativeBridge('startTracking');
+    showLoading(false);
+
+    const addr = await getAddressesFromCoords(loc.lat, loc.lng);
+    // 그사이 이미 도착 처리로 트립이 닫혔을 수 있으니, 여전히 같은 트립이 진행 중일 때만 patch
+    if (appState.currentTrip && appState.currentTrip.id === tripId) {
+      appState.currentTrip.startAddrRoad = addr.road;
+      appState.currentTrip.startAddrJibun = addr.jibun;
+      saveData();
+    }
+    return;
   } else {
     const trip = appState.currentTrip;
 
@@ -100,7 +117,6 @@ async function toggleDrive() {
     }
     return;
   }
-  showLoading(false);
 }
 
 const MAX_WAYPOINTS = 30;
