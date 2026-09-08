@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v54'; // 출발 확정도 API 호출 전에 즉시 저장
+const CACHE_NAME = 'drive-log-v55'; // NFC 중복 인텐트로 출발/도착 겹쳐 눌리는 문제 방지(디바운스)
 const ASSETS = [
   './index.html',
   './style.css',

@@ -1,5 +1,15 @@
 /* 운행 로직 */
+// NFC 태그 한 번을 찍어도 폰이 태그 근처에 살짝 오래 머물면 안드로이드가 같은 태그를 두 번
+// 인텐트로 배달하는 경우가 있음(MainActivity.onNewIntent()가 매번 페이지를 통째로 새로고침 →
+// loadData()가 NFC 액션을 또 처리). 그러면 출발 직후 곧바로 도착 처리가 걸려서 "출발→도착
+// 떴다가 도착→출발로 되돌아가는" 문제가 생김 — 짧은 시간 내 중복 호출을 걸러서 막는다.
+const TOGGLE_DEBOUNCE_MS = 3000;
+let lastToggleDriveAt = 0;
 async function toggleDrive() {
+  const now = Date.now();
+  if (now - lastToggleDriveAt < TOGGLE_DEBOUNCE_MS) return;
+  lastToggleDriveAt = now;
+
   triggerHaptic();
 
   if (!currentLocation) { await showAlert('GPS 위치를 파악하는 중입니다.'); return; }
