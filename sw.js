@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v55'; // NFC 중복 인텐트로 출발/도착 겹쳐 눌리는 문제 방지(디바운스)
+const CACHE_NAME = 'drive-log-v56'; // NFC 태그 재실행으로 출발/도착이 되돌아가는 문제 수정
 const ASSETS = [
   './index.html',
   './style.css',

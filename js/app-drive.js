@@ -1,14 +1,25 @@
 /* 운행 로직 */
-// NFC 태그 한 번을 찍어도 폰이 태그 근처에 살짝 오래 머물면 안드로이드가 같은 태그를 두 번
-// 인텐트로 배달하는 경우가 있음(MainActivity.onNewIntent()가 매번 페이지를 통째로 새로고침 →
-// loadData()가 NFC 액션을 또 처리). 그러면 출발 직후 곧바로 도착 처리가 걸려서 "출발→도착
-// 떴다가 도착→출발로 되돌아가는" 문제가 생김 — 짧은 시간 내 중복 호출을 걸러서 막는다.
-const TOGGLE_DEBOUNCE_MS = 3000;
-let lastToggleDriveAt = 0;
+// NFC 태그 한 번이 출발/도착을 두 번 토글해버리는 문제 방지용 가드.
+// 재실행 경로가 전부 "페이지를 통째로 다시 로드"하는 형태라서(같은 태그가 인텐트로 두 번
+// 배달되거나, 액티비티가 재생성되면서 저장된 NFC 인텐트가 다시 실행되는 경우 —
+// MainActivity 참고) 자바스크립트 변수에 시각을 담아두면 리로드 때마다 초기화돼서 아무 소용이
+// 없다. 반드시 localStorage처럼 리로드를 넘어 살아남는 곳에 기록해야 함.
+const TOGGLE_DEBOUNCE_MS = 10000;
+const LAST_TOGGLE_KEY = 'driveLog_lastToggleAt';
+function shouldSkipDuplicateToggle() {
+  try {
+    const last = parseInt(localStorage.getItem(LAST_TOGGLE_KEY) || '0', 10);
+    const now = Date.now();
+    if (last && now - last < TOGGLE_DEBOUNCE_MS) return true;
+    localStorage.setItem(LAST_TOGGLE_KEY, String(now));
+  } catch (e) {
+    // localStorage를 못 쓰는 환경이면 가드 없이 그냥 진행 (기능 자체를 막진 않음)
+  }
+  return false;
+}
+
 async function toggleDrive() {
-  const now = Date.now();
-  if (now - lastToggleDriveAt < TOGGLE_DEBOUNCE_MS) return;
-  lastToggleDriveAt = now;
+  if (shouldSkipDuplicateToggle()) return;
 
   triggerHaptic();
 
