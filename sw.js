@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v56'; // NFC 태그 재실행으로 출발/도착이 되돌아가는 문제 수정
+const CACHE_NAME = 'drive-log-v57'; // 웹뷰 저장소 유실 대비 네이티브 백업본 이중화
 const ASSETS = [
   './index.html',
   './style.css',

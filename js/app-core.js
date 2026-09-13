@@ -111,9 +111,38 @@ function showConfirm(message) {
   });
 }
 
+// 저장된 상태를 읽어온다 — localStorage 사본과 네이티브 파일 사본 중 더 최신인 쪽(savedAt 기준).
+//
+// 안드로이드 웹뷰는 크롬과 달리 프로세스 종료 시 DOM 저장소를 디스크로 내려써주지 않아서,
+// localStorage.setItem()이 화면엔 반영됐는데도 디스크에 닿기 전에 프로세스가 죽으면 그 쓰기가
+// 통째로 사라진다. 실제로 "NFC로 출발을 찍었는데 잠시 뒤 다시 들어가보면 출발 전 상태로
+// 돌아가 있다"는 증상이 여기서 나온다(순수 PWA에서는 크롬이 종료 시 flush 해줘서 안 생겼음).
+// DriveLogPro에서는 saveData()가 같은 내용을 네이티브 파일에도 fsync까지 해서 저장해두므로,
+// 그런 유실이 일어났으면 여기서 네이티브 사본이 더 최신으로 판별돼 복구된다.
+function readSavedState() {
+  const parse = (raw) => {
+    try { return raw ? JSON.parse(raw) : null; } catch (e) { console.warn('저장된 상태 파싱 실패:', e); return null; }
+  };
+  const webState = parse(localStorage.getItem('driveRecords_v4'));
+  const nativeState = parse(callNativeBridge('loadStateBackup'));
+
+  if (!nativeState) return { state: webState, recovered: false };
+  if (!webState) return { state: nativeState, recovered: true };
+
+  const nativeIsNewer = (nativeState.savedAt || 0) > (webState.savedAt || 0);
+  return { state: nativeIsNewer ? nativeState : webState, recovered: nativeIsNewer };
+}
+
 function loadData() {
-  const data = localStorage.getItem('driveRecords_v4');
-  if (data) appState = JSON.parse(data);
+  const { state, recovered } = readSavedState();
+  if (state) appState = state;
+  if (recovered) {
+    // 웹 쪽 사본이 뒤처져 있었으므로 다시 맞춰둔다(다음 실행 때 또 비교할 필요 없게)
+    localStorage.setItem('driveRecords_v4', JSON.stringify(appState));
+    // 실제로 유실이 일어났다는 신호라서 사용자에게도 알려준다 — 이 토스트가 뜬다는 건
+    // 위에서 설명한 웹뷰 저장 유실이 실제로 발생했고 백업본으로 복구됐다는 뜻.
+    setTimeout(() => showToast('운행 상태가 유실될 뻔해서 백업본으로 복구했어요.', 3000), 900);
+  }
 
   document.getElementById('setting-darkmode').checked = appState.settings.darkMode !== false;
   document.getElementById('setting-haptic').checked = appState.settings.haptic !== false;
@@ -153,7 +182,13 @@ function loadData() {
 }
 
 function saveData() {
-  localStorage.setItem('driveRecords_v4', JSON.stringify(appState));
+  appState.savedAt = Date.now(); // 웹 사본과 네이티브 사본 중 어느 쪽이 최신인지 판별하는 기준
+  const json = JSON.stringify(appState);
+  localStorage.setItem('driveRecords_v4', json);
+  // 웹뷰 localStorage는 프로세스가 갑자기 죽으면 마지막 쓰기가 유실될 수 있어서, 같은 내용을
+  // 네이티브 파일에도 즉시(동기적으로 fsync까지) 한 부 더 써둔다 — readSavedState() 주석 참고.
+  // PWA/TWA에서는 브릿지가 없어 조용히 무시되고 기존과 동일하게 동작함.
+  callNativeBridge('saveStateBackup', json);
   updateMainUI();
 }
 

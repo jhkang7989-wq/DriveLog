@@ -150,7 +150,12 @@ async function deletePastMonths() {
 
 async function resetData() {
   const ok = await showConfirm('정말로 모든 데이터를 삭제하시겠습니까? (복구 불가능)');
-  if (ok) { localStorage.removeItem('driveRecords_v4'); window.location.reload(); }
+  if (!ok) return;
+  localStorage.removeItem('driveRecords_v4');
+  // 네이티브 백업본까지 같이 지워야 함 — 안 지우면 다음 실행 때 그게 더 최신으로 판별돼
+  // 지운 데이터가 그대로 되살아난다(readSavedState 참고)
+  callNativeBridge('clearStateBackup');
+  window.location.reload();
 }
 
 function recordBackupTime() {
@@ -261,7 +266,13 @@ async function applyBackupJson(jsonText) {
     const ok = await showConfirm(`백업 파일을 불러오면 현재 데이터(${currentCount}건)는 사라지고\n백업 데이터(${parsed.records.length}건)로 교체됩니다.\n계속하시겠습니까?`);
     if (!ok) return;
 
-    localStorage.setItem('driveRecords_v4', JSON.stringify(parsed));
+    // 백업 파일 안의 savedAt은 백업을 만들던 시점 값이라 지금 네이티브 백업본보다 옛날이다 —
+    // 그대로 두면 다시 열 때 네이티브 쪽이 더 최신으로 판별돼 복원이 없던 일이 된다.
+    // 지금 시각으로 도장을 찍고 네이티브 사본도 같이 갱신해서 양쪽을 맞춰둔다.
+    parsed.savedAt = Date.now();
+    const restoredJson = JSON.stringify(parsed);
+    localStorage.setItem('driveRecords_v4', restoredJson);
+    callNativeBridge('saveStateBackup', restoredJson);
     window.location.reload();
   } catch (e) {
     console.error('백업 복원 오류:', e);
