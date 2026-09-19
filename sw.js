@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v57'; // 웹뷰 저장소 유실 대비 네이티브 백업본 이중화
+const CACHE_NAME = 'drive-log-v58'; // 정차 중 서비스 재시작으로 인한 경유지 중복 기록 방지
 const ASSETS = [
   './index.html',
   './style.css',

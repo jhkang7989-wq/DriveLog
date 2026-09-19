@@ -210,8 +210,22 @@ function fastDrainPendingNativeWaypoints(trip) {
 
   if (!trip.waypoints) trip.waypoints = [];
 
+  // 네이티브가 정차를 감지한 시각(point.timestamp)이 있는데도 "지금(드레인 시각)"으로 찍어버리면,
+  // 하루 종일 못 비워진 채 쌓여있다가 도착할 때 한꺼번에 편입되는 경우 전부 도착 시각으로 찍혀서
+  // 실제 정차 시각을 알 수 없게 됨 — 반드시 point.timestamp를 그대로 써야 함.
+  const DUPLICATE_RADIUS_KM = 0.1; // TrackingService가 같은 정차를 두 번 기록해 보낸 경우의 방어선(자세한 배경은 PendingWaypointStore 주석 참고)
+  const DUPLICATE_WINDOW_MS = 30 * 60 * 1000; // 이 시간 안에서만 "같은 정차의 재기록"으로 보고 걸러냄 — 몇 시간 뒤 같은 거래처를 진짜로 다시 방문한 경우까지 막지 않기 위함
+
   for (const point of points) {
     if (trip.waypoints.length >= MAX_WAYPOINTS) break;
+
+    // 서비스가 재시작되면서 같은 정차를 두 번 보내는 경우가 있어서, 네이티브 쪽 방어와 별개로
+    // 여기서도 한 번 더 막는다 — 위치만 보면 진짜 재방문까지 막아버리니, 시간도 가까울 때만 중복으로 판단.
+    const isDuplicateCoord = trip.waypoints.some(w => {
+      const timeGapMs = point.timestamp ? Math.abs(point.timestamp - new Date(w.timestamp).getTime()) : 0;
+      return timeGapMs <= DUPLICATE_WINDOW_MS && getDistanceFromLatLonInKm(w.lat, w.lng, point.lat, point.lng) <= DUPLICATE_RADIUS_KM;
+    });
+    if (isDuplicateCoord) continue;
 
     const lastWaypoint = trip.waypoints.length > 0 ? trip.waypoints[trip.waypoints.length - 1] : null;
     const restAreaName = findNearbyRestArea(point.lat, point.lng);
@@ -223,7 +237,7 @@ function fastDrainPendingNativeWaypoints(trip) {
 
     const wp = {
       id: Date.now() + added.length,
-      timestamp: new Date().toISOString(),
+      timestamp: point.timestamp ? new Date(point.timestamp).toISOString() : new Date().toISOString(),
       lat: point.lat, lng: point.lng,
       addrRoad: `(확인중) 위도:${point.lat.toFixed(4)}`, addrJibun: `(확인중) 경도:${point.lng.toFixed(4)}`,
       legDistanceKm: straightKm * 1.3,
