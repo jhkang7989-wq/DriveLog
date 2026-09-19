@@ -184,11 +184,31 @@ function loadData() {
 function saveData() {
   appState.savedAt = Date.now(); // 웹 사본과 네이티브 사본 중 어느 쪽이 최신인지 판별하는 기준
   const json = JSON.stringify(appState);
-  localStorage.setItem('driveRecords_v4', json);
+
+  // localStorage.setItem이 예외를 던지면(저장공간 부족 등) 그 아래 네이티브 백업 저장과
+  // updateMainUI()가 통째로 건너뛰어지는 문제가 있었음 — 메모리 상태는 이미 바뀌었는데 어느
+  // 쪽에도 저장이 안 되고 화면도 안 갱신되는, 이 세션 내내 쫓아다닌 "찍혔는데 사라짐"류 버그가
+  // 또 다른 계기(저장공간 부족)로 재발할 수 있는 구멍이었음. try/catch로 감싸서 한쪽이 실패해도
+  // 나머지는 마저 시도하게 한다.
+  let webSaveOk = true;
+  try {
+    localStorage.setItem('driveRecords_v4', json);
+  } catch (e) {
+    webSaveOk = false;
+    console.error('localStorage 저장 실패:', e);
+  }
+
   // 웹뷰 localStorage는 프로세스가 갑자기 죽으면 마지막 쓰기가 유실될 수 있어서, 같은 내용을
   // 네이티브 파일에도 즉시(동기적으로 fsync까지) 한 부 더 써둔다 — readSavedState() 주석 참고.
   // PWA/TWA에서는 브릿지가 없어 조용히 무시되고 기존과 동일하게 동작함.
-  callNativeBridge('saveStateBackup', json);
+  const nativeSaveOk = callNativeBridge('saveStateBackup', json);
+
+  // 웹 저장이 실패했는데 네이티브 백업마저 없거나(PWA/TWA) 실패했으면, 이 변경은 어디에도
+  // 안 남은 것 — 사용자가 알아채야 다시 시도하거나 수동으로라도 대응할 수 있음.
+  if (!webSaveOk && nativeSaveOk !== true) {
+    showToast('⚠️ 저장에 실패했어요. 방금 내용이 유실될 수 있어요.', 3000);
+  }
+
   updateMainUI();
 }
 

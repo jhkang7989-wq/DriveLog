@@ -86,7 +86,11 @@ async function toggleDrive() {
       startAddrRoad: trip.startAddrRoad, startAddrJibun: trip.startAddrJibun,
       endAddrRoad: `(확인중) 위도:${loc.lat.toFixed(4)}`, endAddrJibun: `(확인중) 경도:${loc.lng.toFixed(4)}`,
       waypoints: waypoints, finalLegKm: straightFinalKm * 1.3, finalLegEstimated: true,
-      distance: provisionalDistance, note: "⚠️ 거리 추정치(직선거리 기반)"
+      distance: provisionalDistance, note: "⚠️ 거리 추정치(직선거리 기반)",
+      // 이 트립을 마감한 시점의 오차보정%을 같이 남겨둔다 — 나중에 설정을 바꾼 뒤 경유지를
+      // 삭제/수정해서 거리를 재계산할 때(deleteWaypoint), 그때의 설정이 아니라 이 트립이 실제로
+      // 마감될 때 쓰인 보정률을 그대로 재사용해야 과거 기록이 조용히 안 바뀜.
+      offsetPercentUsed: appState.settings.offsetPercent
     });
 
     appState.isRunning = false;

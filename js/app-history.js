@@ -517,8 +517,17 @@ async function deleteWaypoint(idx) {
 
   const rawTotalKm = r.waypoints.reduce((sum, w) => sum + w.legDistanceKm, 0) + (r.finalLegKm || 0);
   const anyEstimated = r.waypoints.some(w => w.legEstimated) || r.finalLegEstimated;
-  r.distance = Math.round((rawTotalKm * (1 + (appState.settings.offsetPercent / 100))) * 10) / 10;
-  r.note = anyEstimated ? "⚠️ 거리 추정치(직선거리 기반)" : "";
+  // 이 트립이 처음 마감될 때 실제로 적용됐던 오차보정%을 써야 함 — 지금의(더 최신) 설정값을
+  // 쓰면, 나중에 설정을 바꾼 뒤 옛날 기록의 경유지를 하나 지웠을 뿐인데 그 기록 전체 거리가
+  // 당시와 다른 보정률로 조용히 재계산돼버림. offsetPercentUsed가 없는(이 필드가 생기기 전)
+  // 과거 기록은 지금 설정값으로 폴백.
+  const offsetPercent = r.offsetPercentUsed != null ? r.offsetPercentUsed : appState.settings.offsetPercent;
+  r.distance = Math.round((rawTotalKm * (1 + (offsetPercent / 100))) * 10) / 10;
+  // 자동경고 슬롯(비어있거나 이미 경고였던 경우)만 갱신 — 사용자가 직접 써둔 비고는 그대로 보존.
+  const noteWasAutoWarning = !r.note || r.note.includes('추정치');
+  if (noteWasAutoWarning) {
+    r.note = anyEstimated ? "⚠️ 거리 추정치(직선거리 기반)" : "";
+  }
 
   saveData();
   renderWaypointModal();
