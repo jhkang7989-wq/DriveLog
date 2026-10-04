@@ -1194,19 +1194,22 @@ input:checked + .slider:before {
   background: #000000;
   color: #FFFFFF;
   border: none;
-  padding: 10px 18px;
+  padding: 8px 14px;
   border-radius: var(--border-radius-pill);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   z-index: 2500;
-  max-width: 84%;
+  /* left:50% 로 고정된 요소는 쓸 수 있는 폭이 화면의 절반으로 잡혀서 짧은 문구도 줄바꿈이 됐음 —
+     max-content로 내용 크기만큼 펼치고, 화면보다 길어질 때만 max-width에서 줄바꿈되게 함 */
+  width: max-content;
+  max-width: calc(100vw - 32px);
   text-align: center;
 }
 
@@ -1229,19 +1232,21 @@ input:checked + .slider:before {
 }
 
 .toast-icon svg {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   stroke-width: 2;
 }
 
 .toast-action {
-  margin-left: 4px;
-  padding: 4px 11px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: 2px;
+  padding: 3px 9px;
   border: none;
   border-radius: var(--border-radius-pill);
   background: rgba(255, 255, 255, 0.16);
   color: #FFFFFF;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
 }
