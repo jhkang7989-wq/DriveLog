@@ -25,7 +25,7 @@
   <meta name="theme-color" content="#000000">
   
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="style.css?v=62">
+  <link rel="stylesheet" href="style.css?v=63">
 
 </head>
 <body>
@@ -90,6 +90,11 @@
         <div class="setting-label"><i data-lucide="refresh-cw"></i> 앱 새로고침</div>
         <button class="setting-action" onclick="forceRefreshApp()"><i data-lucide="refresh-cw"></i></button>
       </div>
+      <div class="setting-item has-sub-info">
+        <div class="setting-label"><i data-lucide="stethoscope"></i> 진단 로그</div>
+        <button class="setting-action" onclick="openDiagModal()"><i data-lucide="clipboard-list"></i></button>
+      </div>
+      <div id="app-version-label" class="setting-sub-info"></div>
     </div>
 
     <div class="settings-group">
@@ -303,6 +308,19 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="diag-modal">
+    <div class="modal-card">
+      <h3 style="margin-bottom:6px;">진단 로그</h3>
+      <div id="diag-modal-version" class="diag-meta"></div>
+      <pre id="diag-modal-text" class="diag-text"></pre>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" onclick="clearDiagLogs()">지우기</button>
+        <button class="modal-btn modal-btn-save" onclick="copyDiagLog()">복사</button>
+        <button class="modal-btn modal-btn-cancel" onclick="closeDiagModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
   <div class="modal-overlay" id="alert-modal">
@@ -313,11 +331,11 @@
   </div>
 </div>
 
-<script src="js/app-core.js?v=62"></script>
-<script src="js/rest-areas-data.js?v=62"></script>
-<script src="js/app-location.js?v=62"></script>
-<script src="js/app-drive.js?v=62"></script>
-<script src="js/app-history.js?v=62"></script>
-<script src="js/app-data.js?v=62"></script>
+<script src="js/app-core.js?v=63"></script>
+<script src="js/rest-areas-data.js?v=63"></script>
+<script src="js/app-location.js?v=63"></script>
+<script src="js/app-drive.js?v=63"></script>
+<script src="js/app-history.js?v=63"></script>
+<script src="js/app-data.js?v=63"></script>
 </body>
 </html>

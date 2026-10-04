@@ -684,6 +684,32 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
   cursor: pointer;
 }
 
+/* 진단 로그 화면 */
+.diag-meta {
+  margin-bottom: 10px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.diag-text {
+  max-height: 46vh;
+  overflow: auto;
+  margin-bottom: 16px;
+  padding: 10px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.66rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text-main);
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 .merged-split-btn:active {
   background: var(--accent-tint);
   color: var(--accent-color);

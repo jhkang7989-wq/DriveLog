@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v62'; // 경유지 중복 저장 방지(정차 ID/겹침 방지)
+const CACHE_NAME = 'drive-log-v63'; // 진단 로그 추가
 const ASSETS = [
   './index.html',
   './style.css',

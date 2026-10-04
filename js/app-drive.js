@@ -18,12 +18,16 @@ function shouldSkipDuplicateToggle() {
   return false;
 }
 
-async function toggleDrive() {
-  if (shouldSkipDuplicateToggle()) return;
+async function toggleDrive(source = 'button') {
+  if (shouldSkipDuplicateToggle()) {
+    diagLog(`토글 무시(10초 이내 중복) 출처=${source} 운행중=${appState.isRunning}`);
+    return;
+  }
+  diagLog(`토글 호출 출처=${source} 운행중=${appState.isRunning}`);
 
   triggerHaptic();
 
-  if (!currentLocation) { await showAlert('GPS 위치를 파악하는 중입니다.'); return; }
+  if (!currentLocation) { diagLog('토글 중단: GPS 위치 없음'); await showAlert('GPS 위치를 파악하는 중입니다.'); return; }
 
   showLoading(true, "위치 정보를 처리하고 있습니다...");
   const loc = await getBestLocation(); // 정확도 좋으면 즉시, 애매하면 짧게 재측정해서 가장 정확한 좌표 사용
@@ -42,6 +46,7 @@ async function toggleDrive() {
     saveData();
     nativeTrackingRecoveryAttempted = false;
     callNativeBridge('startTracking');
+    diagLog(`출발 확정 trip=${tripId}`);
     showLoading(false);
 
     const addr = await getAddressesFromCoords(loc.lat, loc.lng);
@@ -97,6 +102,7 @@ async function toggleDrive() {
     appState.currentTrip = null;
     saveData();
     callNativeBridge('stopTracking');
+    diagLog(`도착 확정 record=${recordId} 경유${waypoints.length}건 임시거리=${provisionalDistance}km`);
     showLoading(false);
 
     // 여기서부터는 이미 "출발" 버튼으로 돌아간 뒤 — 정밀 주소/거리를 뒤늦게 계산해서 같은 기록에 반영.
@@ -135,6 +141,7 @@ async function toggleDrive() {
       rec.distance = finalDistance;
       rec.note = anyEstimated ? "⚠️ 거리 추정치(직선거리 기반)" : "";
       saveData();
+      diagLog(`도착 정밀계산 반영 record=${recordId} 거리=${finalDistance}km`);
     }
 
     if (anyEstimated) {
@@ -309,6 +316,7 @@ async function drainPendingNativeWaypoints() {
       callNativeBridge('clearPendingWaypoints');
     }
 
+    diagLog(`자동 경유 처리: 대기 ${points.length}건 중 ${addedCount}건 반영`);
     if (addedCount > 0) showToast(`경유지 ${addedCount}곳 기록됨`, 1800, 'map-pin');
   } finally {
     nativeDrainInProgress = false;
@@ -320,14 +328,31 @@ async function drainPendingNativeWaypoints() {
 // 실제로는 안 살아있는 상태를 주기적으로 감지해서 조용히 재시작하는 자가복구 로직.
 // 재시도가 실패해도 계속 반복 시도/알림 스팸하지 않도록 한 번 시도 후 복구 확인될 때까지 대기.
 let nativeTrackingRecoveryAttempted = false;
+let loggedTrackingMismatch = false;
 function recoverNativeTrackingIfNeeded() {
-  if (!appState.isRunning || !window.AndroidBridge) return;
+  if (!window.AndroidBridge) return;
+
+  if (!appState.isRunning) {
+    // 반대 방향 불일치(폰은 추적 중인데 웹은 "운행 아님")는 이 앱이 알아채지 못하고 있었음 —
+    // "출발했는데 앱을 다시 보니 출발 전으로 돌아가 있고 추적 알림만 남아있다"는 증상의 모양이라서,
+    // 지금은 고치지 않고 진단 로그에 남겨서 언제 어긋나는지만 확인한다. (도착 직후엔 서비스가
+    // 꺼지는 데 잠깐 걸려서 몇 초 안의 감지는 정상일 수 있음)
+    const nativeActive = callNativeBridge('isTrackingActive') === true;
+    if (nativeActive && !loggedTrackingMismatch) {
+      loggedTrackingMismatch = true;
+      diagLog('불일치 감지: 폰은 추적 중인데 웹은 운행 아님');
+    } else if (!nativeActive) {
+      loggedTrackingMismatch = false;
+    }
+    return;
+  }
 
   const active = callNativeBridge('isTrackingActive');
   if (active) { nativeTrackingRecoveryAttempted = false; return; }
   if (nativeTrackingRecoveryAttempted) return;
 
   nativeTrackingRecoveryAttempted = true;
+  diagLog('자가복구: 웹은 운행 중인데 폰 추적이 꺼져 있어 재시작 시도');
   callNativeBridge('startTracking');
   showToast('⚠️ 추적이 중단되어 자동으로 재시작했습니다.');
 }

@@ -27,6 +27,39 @@ function callNativeBridge(methodName, ...args) {
   }
 }
 
+/* 진단 로그 — 출발/도착 상태가 갑자기 풀리는 문제처럼 "그때 무슨 일이 있었는지"를 나중에 확인할
+   방법이 없어서 만듦. 웹에서 일어난 일(페이지 시작, 상태 읽기/저장, 출발·도착 호출 등)을 시간순으로
+   남기고, 설정의 "진단 로그"에서 DriveLogPro 네이티브 쪽 기록(DiagLog.java)과 시각순으로 합쳐서 보여준다.
+   기록이 앱 동작에 영향을 주면 안 되므로 어떤 경우에도 예외를 밖으로 던지지 않는다. */
+const DIAG_KEY = 'driveLog_diag';
+const DIAG_MAX = 200;
+
+// 지금 실행 중인 웹 버전 — index.html의 <script src="js/app-core.js?v=NN">에서 읽어서 배포 때
+// 올리는 캐시 버전 번호와 항상 같게 유지됨
+const WEB_BUILD = (() => {
+  try { return new URL(document.currentScript.src).searchParams.get('v') || '?'; } catch (e) { return '?'; }
+})();
+
+// 한국시간 "YYYY-MM-DD HH:mm:ss.SSS" — 네이티브 DiagLog와 같은 형식이라 문자열 정렬만으로 시간순이 됨
+function diagStamp(ms) {
+  return new Date(ms + 9 * 3600 * 1000).toISOString().replace('T', ' ').slice(0, 23);
+}
+
+function diagLog(message) {
+  try {
+    const arr = JSON.parse(localStorage.getItem(DIAG_KEY) || '[]');
+    arr.push(`${diagStamp(Date.now())} [W] ${message}`);
+    if (arr.length > DIAG_MAX) arr.splice(0, arr.length - DIAG_MAX);
+    localStorage.setItem(DIAG_KEY, JSON.stringify(arr));
+  } catch (e) { /* 진단 기록 실패는 무시 */ }
+}
+
+diagLog(`페이지 시작 웹v${WEB_BUILD} NFC액션=${window.__pendingAction || '없음'} 화면=${document.visibilityState}`);
+window.addEventListener('error', e => diagLog(`JS오류: ${e.message} (${String(e.filename || '').split('/').pop()}:${e.lineno})`));
+window.addEventListener('unhandledrejection', e => diagLog(`JS비동기오류: ${e.reason && e.reason.message ? e.reason.message : e.reason}`));
+window.addEventListener('pagehide', () => diagLog('pagehide(페이지가 내려감)'));
+document.addEventListener('visibilitychange', () => diagLog(`화면 ${document.hidden ? '숨김' : '표시'}`));
+
 // 앱을 자정 넘어서까지 계속 켜놓고 있으면 "오늘 누적 거리"가 어제 날짜 기준으로 멈춰있는 문제가
 // 있었음 — updateMainUI()가 운행 시작/종료 등 데이터가 바뀌는 시점에만 호출되고, 시간이 그냥
 // 흘러서 날짜가 바뀌는 것 자체로는 재계산이 안 됐기 때문. 5분마다 KST 기준 날짜가 바뀌었는지
@@ -126,16 +159,22 @@ function readSavedState() {
   const webState = parse(localStorage.getItem('driveRecords_v4'));
   const nativeState = parse(callNativeBridge('loadStateBackup'));
 
-  if (!nativeState) return { state: webState, recovered: false };
-  if (!webState) return { state: nativeState, recovered: true };
+  // 진단 로그용 요약: 어느 쪽에 어떤 상태가 저장돼 있었는지
+  const brief = (s) => s ? `운행${s.isRunning ? '중' : '아님'}/기록${(s.records || []).length}/저장${s.savedAt ? diagStamp(s.savedAt).slice(11, 19) : '없음'}` : '없음';
+  const info = `웹=${brief(webState)} 폰=${brief(nativeState)}`;
+
+  if (!nativeState) return { state: webState, recovered: false, info: info + ' → 웹 사용' };
+  if (!webState) return { state: nativeState, recovered: true, info: info + ' → 폰 사용(웹 없음)' };
 
   const nativeIsNewer = (nativeState.savedAt || 0) > (webState.savedAt || 0);
-  return { state: nativeIsNewer ? nativeState : webState, recovered: nativeIsNewer };
+  return { state: nativeIsNewer ? nativeState : webState, recovered: nativeIsNewer, info: info + (nativeIsNewer ? ' → 폰 사용(더 최신)' : ' → 웹 사용') };
 }
 
 function loadData() {
-  const { state, recovered } = readSavedState();
+  const { state, recovered, info } = readSavedState();
+  diagLog(`상태 읽기: ${info}`);
   if (state) appState = state;
+  lastSavedRunning = appState.isRunning; // 방금 읽은 상태가 기준 — 이후 "바뀐 저장"만 기록하려고
   if (recovered) {
     // 웹 쪽 사본이 뒤처져 있었으므로 다시 맞춰둔다(다음 실행 때 또 비교할 필요 없게)
     localStorage.setItem('driveRecords_v4', JSON.stringify(appState));
@@ -159,6 +198,7 @@ function loadData() {
   // 그 스크립트의 주석 참고 — 프로세스가 죽었다 복원될 때 저절로 재실행되는 문제 방지).
   if (window.__pendingAction === 'toggle') {
       window.__pendingAction = null;
+      diagLog(`NFC 액션 감지 → GPS 대기 시작 (현재 운행중=${appState.isRunning})`);
       showLoading(true, "NFC 인식됨 - GPS 위치 확인 중...");
       const maxWaitMs = 8000;
       const checkIntervalMs = 300;
@@ -168,18 +208,22 @@ function loadData() {
         if (currentLocation) {
           clearInterval(waitForGps);
           showLoading(false);
-          toggleDrive();
+          diagLog(`GPS 확보(${waited}ms 대기) → toggleDrive 호출`);
+          toggleDrive('nfc');
         } else {
           waited += checkIntervalMs;
           if (waited >= maxWaitMs) {
             clearInterval(waitForGps);
             showLoading(false);
+            diagLog('GPS 8초 시간초과 → NFC 토글 취소');
             showAlert('GPS 신호를 받지 못했습니다.\n하늘이 잘 보이는 곳에서 다시 태그하거나, 앱에서 직접 "출발/도착" 버튼을 눌러주세요.');
           }
         }
       }, checkIntervalMs);
   }
 }
+
+let lastSavedRunning = null;
 
 function saveData() {
   appState.savedAt = Date.now(); // 웹 사본과 네이티브 사본 중 어느 쪽이 최신인지 판별하는 기준
@@ -196,6 +240,13 @@ function saveData() {
   } catch (e) {
     webSaveOk = false;
     console.error('localStorage 저장 실패:', e);
+    diagLog(`웹 저장 실패: ${e && e.name}`);
+  }
+
+  // 운행 상태(출발/도착)가 바뀌는 저장만 기록 — 경유지 저장 등 평소 저장까지 다 남기면 로그가 넘침
+  if (lastSavedRunning !== appState.isRunning) {
+    diagLog(`상태 저장: 운행중=${appState.isRunning} 기록${(appState.records || []).length}건 trip=${appState.currentTrip ? appState.currentTrip.id : '없음'}`);
+    lastSavedRunning = appState.isRunning;
   }
 
   // 웹뷰 localStorage는 프로세스가 갑자기 죽으면 마지막 쓰기가 유실될 수 있어서, 같은 내용을

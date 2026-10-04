@@ -297,4 +297,67 @@ async function forceRefreshApp() {
   window.location.reload();
 }
 
-window.onload = () => { loadData(); renderLastBackupLabel(); };
+/* 진단 로그 화면 — 웹 기록(localStorage)과 DriveLogPro 네이티브 기록을 시각순으로 합쳐서 보여주고 복사할 수 있게 함 */
+function getAppVersionText() {
+  const native = callNativeBridge('getAppVersion');
+  return `웹 v${WEB_BUILD} · 앱 ${native ? native + ' / ' + callNativeBridge('getBridgeVersion') : '(DriveLogPro 아님)'}`;
+}
+
+function renderAppVersionLabel() {
+  const el = document.getElementById('app-version-label');
+  if (el) el.innerText = getAppVersionText();
+}
+
+function getMergedDiagLines() {
+  let web = [];
+  try { web = JSON.parse(localStorage.getItem(DIAG_KEY) || '[]'); } catch (e) { /* 손상된 기록은 무시 */ }
+  const nativeText = callNativeBridge('getDiagLog');
+  const native = nativeText ? nativeText.split('\n').filter(Boolean) : [];
+  // 두 기록 모두 "YYYY-MM-DD HH:mm:ss.SSS"(한국시간)로 시작해서 그 23글자만 비교하면 시간순이 됨.
+  // 같은 밀리초에 찍힌 줄은 각 기록 안의 원래 순서를 유지하도록(정렬은 안정 정렬) 시각만 비교한다.
+  return web.concat(native).sort((a, b) => {
+    const ta = a.slice(0, 23), tb = b.slice(0, 23);
+    return ta < tb ? -1 : (ta > tb ? 1 : 0);
+  });
+}
+
+function openDiagModal() {
+  triggerHaptic();
+  const lines = getMergedDiagLines();
+  document.getElementById('diag-modal-version').innerText = `${getAppVersionText()} · ${lines.length}줄`;
+  const pre = document.getElementById('diag-modal-text');
+  pre.textContent = lines.length ? lines.join('\n') : '(기록 없음)';
+  document.getElementById('diag-modal').classList.add('active');
+  pre.scrollTop = pre.scrollHeight; // 최근 기록이 보이게
+}
+
+function closeDiagModal() {
+  document.getElementById('diag-modal').classList.remove('active');
+}
+
+async function copyDiagLog() {
+  const text = `${getAppVersionText()}\n${getMergedDiagLines().join('\n')}`;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    // 클립보드 API가 막힌 환경 대비 — 임시 입력창으로 복사
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed; opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e2) { /* 실패하면 아래 안내가 그대로 뜸 */ }
+    document.body.removeChild(ta);
+  }
+  showToast('로그를 복사했어요', 1800, 'clipboard-check');
+}
+
+async function clearDiagLogs() {
+  const ok = await showConfirm('진단 로그를 모두 지울까요?');
+  if (!ok) return;
+  localStorage.removeItem(DIAG_KEY);
+  callNativeBridge('clearDiagLog');
+  openDiagModal();
+}
+
+window.onload = () => { loadData(); renderLastBackupLabel(); renderAppVersionLabel(); };
