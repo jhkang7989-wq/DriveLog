@@ -149,7 +149,9 @@ const MAX_WAYPOINTS = 30;
 // 실제 경유지 등록 로직 — 화면의 "경유" 버튼(addWaypoint)과 DriveLogPro의 백그라운드 자동 정차
 // 감지(drainPendingNativeWaypoints) 양쪽에서 공유해서 쓴다. silent면 최대개수 초과 안내 외의
 // 토스트를 안 띄움(자동 감지분은 여러 건을 한꺼번에 조용히 처리하고 마지막에 한 번만 안내하기 위함).
-async function addWaypointAtLocation(loc, { silent = false } = {}) {
+// nativeStopTs: 네이티브가 그 정차를 감지한 시각(밀리초) — 정차마다 하나뿐이라 "이미 반영한 정차인가"를
+// 알아보는 ID로 씀. 같은 정차가 두 번 들어오는 모든 경로(겹친 드레인, 중단 후 재실행)를 이 하나로 막는다.
+async function addWaypointAtLocation(loc, { silent = false, nativeStopTs = null } = {}) {
   if (!appState.isRunning || !appState.currentTrip) return false;
 
   if (!appState.currentTrip.waypoints) appState.currentTrip.waypoints = [];
@@ -159,6 +161,8 @@ async function addWaypointAtLocation(loc, { silent = false } = {}) {
   }
 
   const trip = appState.currentTrip;
+  const alreadyRecorded = () => nativeStopTs != null && trip.waypoints.some(w => w.nativeStopTs === nativeStopTs);
+  if (alreadyRecorded()) return false;
   const lastWaypoint = trip.waypoints.length > 0 ? trip.waypoints[trip.waypoints.length - 1] : null;
   const restAreaName = findNearbyRestArea(loc.lat, loc.lng); // 휴게소 자동 라벨링 — 거래처/밭 방문과 구분용
 
@@ -173,6 +177,12 @@ async function addWaypointAtLocation(loc, { silent = false } = {}) {
   const prevPoint = lastWaypoint || { lat: trip.startLat, lng: trip.startLng };
   const legResult = await calculateDistance(prevPoint.lat, prevPoint.lng, loc.lat, loc.lng);
 
+  // 위 두 API를 기다리는 사이 상황이 바뀔 수 있어서 저장 직전에 다시 확인한다:
+  // ① 그 사이 다른 쪽(겹쳐 돈 드레인, 도착 처리의 빠른 편입)이 같은 정차를 이미 넣었으면 건너뜀,
+  // ② 그 사이 도착해서 이 트립이 이미 닫혔으면(경유지 배열은 저장된 기록과 같은 배열이라) 닫힌
+  //    기록에 뒤늦게 경유지가 끼어들어 거리와 어긋나지 않게 버림.
+  if (alreadyRecorded() || appState.currentTrip !== trip) return false;
+
   trip.waypoints.push({
     id: Date.now(),
     timestamp: new Date().toISOString(),
@@ -180,7 +190,8 @@ async function addWaypointAtLocation(loc, { silent = false } = {}) {
     addrRoad: addr.road, addrJibun: addr.jibun,
     legDistanceKm: legResult.distanceKm,
     legEstimated: legResult.estimated,
-    restAreaName: restAreaName || undefined
+    restAreaName: restAreaName || undefined,
+    nativeStopTs: nativeStopTs != null ? nativeStopTs : undefined
   });
 
   saveData();
@@ -223,6 +234,9 @@ function fastDrainPendingNativeWaypoints(trip) {
   for (const point of points) {
     if (trip.waypoints.length >= MAX_WAYPOINTS) break;
 
+    // 이미 반영된 정차(주기 드레인이 먼저 넣었거나, 목록을 못 비운 채 재실행된 경우)는 정차 시각 ID로 걸러냄
+    if (point.timestamp != null && trip.waypoints.some(w => w.nativeStopTs === point.timestamp)) continue;
+
     // 서비스가 재시작되면서 같은 정차를 두 번 보내는 경우가 있어서, 네이티브 쪽 방어와 별개로
     // 여기서도 한 번 더 막는다 — 위치만 보면 진짜 재방문까지 막아버리니, 시간도 가까울 때만 중복으로 판단.
     const isDuplicateCoord = trip.waypoints.some(w => {
@@ -246,7 +260,8 @@ function fastDrainPendingNativeWaypoints(trip) {
       addrRoad: `(확인중) 위도:${point.lat.toFixed(4)}`, addrJibun: `(확인중) 경도:${point.lng.toFixed(4)}`,
       legDistanceKm: straightKm * 1.3,
       legEstimated: true,
-      restAreaName: restAreaName || undefined
+      restAreaName: restAreaName || undefined,
+      nativeStopTs: point.timestamp != null ? point.timestamp : undefined
     };
     trip.waypoints.push(wp);
     added.push(wp);
@@ -260,7 +275,14 @@ function fastDrainPendingNativeWaypoints(trip) {
 // 주소 변환·거리 계산은 여기서(addWaypointAtLocation) 기존 로직을 그대로 재사용해 처리한다.
 // 기존 DriveLog(TWA)/브라우저에는 callNativeBridge가 항상 undefined를 반환하니 완전히 안전.
 // (실시간 경유 버튼/평상시 20초 주기 자동 감지 전용 — 도착 처리 전용은 위 fastDrainPendingNativeWaypoints)
+// 점마다 주소/거리 API를 기다려서 정차가 몇 개 쌓여있으면 20초를 쉽게 넘김 — 그동안 다음 주기가
+// 또 시작되면 둘 다 아직 안 비워진 같은 목록을 읽어서 통째로 이중 기록되고, 복제된 구간이 왕복
+// 거리로 더해져 총거리가 부풀었음(실사용에서 확인). 한 번에 하나만 돌게 하고, 혹시 중단 후 다시
+// 읽혀도 정차 시각 ID(nativeStopTs)로 걸러지니 같은 정차가 두 번 들어가지 않는다.
+let nativeDrainInProgress = false;
+
 async function drainPendingNativeWaypoints() {
+  if (nativeDrainInProgress) return;
   if (!appState.isRunning || !appState.currentTrip) return;
 
   const raw = callNativeBridge('getPendingWaypoints');
@@ -270,14 +292,27 @@ async function drainPendingNativeWaypoints() {
   try { points = JSON.parse(raw); } catch (e) { return; }
   if (!Array.isArray(points) || points.length === 0) return;
 
-  let addedCount = 0;
-  for (const point of points) {
-    const added = await addWaypointAtLocation({ lat: point.lat, lng: point.lng }, { silent: true });
-    if (added) addedCount++;
-  }
-  callNativeBridge('clearPendingWaypoints');
+  nativeDrainInProgress = true;
+  try {
+    let addedCount = 0;
+    for (const point of points) {
+      const added = await addWaypointAtLocation({ lat: point.lat, lng: point.lng }, { silent: true, nativeStopTs: point.timestamp });
+      if (added) addedCount++;
+    }
 
-  if (addedCount > 0) showToast(`경유지 ${addedCount}곳 기록됨`, 1800, 'map-pin');
+    // 처리하는 동안 네이티브가 새 정차를 더 쌓았을 수 있음 — 그냥 통째로 비우면 그 새 정차를 읽지도
+    // 못한 채 지워버리니, 목록 개수가 읽을 때와 같을 때만(새로 추가된 게 없을 때만) 비운다.
+    // 안 비우고 넘어가도 다음 주기에 이미 반영된 건 ID로 걸러지고 새 정차만 추가됨.
+    let nowPending = null;
+    try { nowPending = JSON.parse(callNativeBridge('getPendingWaypoints') || '[]'); } catch (e) { /* 못 읽으면 안 비우고 다음 주기에 맡김 */ }
+    if (Array.isArray(nowPending) && nowPending.length <= points.length) {
+      callNativeBridge('clearPendingWaypoints');
+    }
+
+    if (addedCount > 0) showToast(`경유지 ${addedCount}곳 기록됨`, 1800, 'map-pin');
+  } finally {
+    nativeDrainInProgress = false;
+  }
 }
 
 // 제조사 알림 정리("전체 지우기" 등)로 DriveLogPro 네이티브 추적 서비스가 예기치 않게 죽는 경우가
