@@ -235,6 +235,7 @@ function toggleDarkMode(init = false) {
 function triggerHaptic() { if (appState.settings.haptic && navigator.vibrate) navigator.vibrate(50); }
 
 function switchTab(tabId) {
+  if (typeof clearSummarySelection === 'function') clearSummarySelection(false); // 다른 탭으로 가면 합치기 선택 모드 해제
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById(`tab-${tabId}`).classList.add('active');
@@ -249,13 +250,52 @@ function showLoading(show, text="처리중...") {
 
 // 확인 버튼 없이 잠깐 떴다 사라지는 짧은 안내(경유지 저장 완료, 최대 개수 안내 등) — showAlert와 달리 흐름을 막지 않음
 let toastTimer = null;
-function showToast(message, duration = 1800) {
+
+// 토스트 내용을 DOM으로 직접 구성 — 메시지는 textContent로만 넣어서 주소 등 외부 문자열이
+// 섞여도 HTML로 해석되지 않음. icon은 lucide 아이콘 이름(선택).
+function fillToast(toast, message, icon) {
+  toast.replaceChildren();
+  if (icon) {
+    const iconEl = document.createElement('span');
+    iconEl.className = 'toast-icon';
+    const i = document.createElement('i');
+    i.setAttribute('data-lucide', icon);
+    iconEl.appendChild(i);
+    toast.appendChild(iconEl);
+  }
+  const text = document.createElement('span');
+  text.textContent = message;
+  toast.appendChild(text);
+  if (icon && typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function showToast(message, duration = 1800, icon = null) {
   const toast = document.getElementById('toast');
   if (!toast) return;
-  toast.innerText = message;
+  toast.classList.remove('has-action');
+  fillToast(toast, message, icon);
   toast.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+// "되돌리기" 버튼이 달린 토스트 — 실행 직후에만 잠깐 누를 수 있음(기본 5초)
+function showUndoToast(message, onUndo, duration = 5000) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  fillToast(toast, message, null);
+  const btn = document.createElement('button');
+  btn.className = 'toast-action';
+  btn.textContent = '되돌리기';
+  btn.onclick = () => {
+    clearTimeout(toastTimer);
+    toast.classList.remove('show', 'has-action');
+    onUndo();
+  };
+  toast.appendChild(btn);
+  toast.classList.add('has-action', 'show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show', 'has-action'), duration);
 }
 
 // 한국시간(KST, UTC+9) 기준 날짜 문자열(YYYY-MM-DD) 반환

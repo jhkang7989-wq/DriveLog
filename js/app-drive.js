@@ -185,7 +185,7 @@ async function addWaypointAtLocation(loc, { silent = false } = {}) {
 
   saveData();
   updateWaypointButtonLabel();
-  if (!silent) showToast('경유지가 저장됐어요.');
+  if (!silent) showToast('경유지 저장됨', 1800, 'map-pin');
   return true;
 }
 
@@ -277,7 +277,7 @@ async function drainPendingNativeWaypoints() {
   }
   callNativeBridge('clearPendingWaypoints');
 
-  if (addedCount > 0) showToast(`🚗 자동 감지된 정차 ${addedCount}건이 경유지로 기록됐어요.`);
+  if (addedCount > 0) showToast(`경유지 ${addedCount}곳 기록됨`, 1800, 'map-pin');
 }
 
 // 제조사 알림 정리("전체 지우기" 등)로 DriveLogPro 네이티브 추적 서비스가 예기치 않게 죽는 경우가

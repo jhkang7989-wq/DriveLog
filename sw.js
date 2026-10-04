@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v59'; // 전체 점검분 버그 수정(비고 보존/offset및 saveData 오류처리)
+const CACHE_NAME = 'drive-log-v60'; // 요약 슬롯 합치기 + 알림 재디자인
 const ASSETS = [
   './index.html',
   './style.css',

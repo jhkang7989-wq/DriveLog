@@ -630,6 +630,65 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
   font-variant-numeric: tabular-nums;
 }
 
+.summary-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* 합쳐진 슬롯 표시 — 확인용이라 조용하게(회색 연결 고리). 터치 영역만 넉넉히 */
+.summary-merged-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px 0;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.summary-merged-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* 슬롯 합치기 선택 모드 */
+.summary-card.selected {
+  border-color: var(--accent-color);
+  background: var(--accent-tint);
+}
+
+.summary-card.candidate {
+  border-color: var(--accent-tint-border);
+  border-style: dashed;
+}
+
+.summary-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.summary-hint button {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  color: var(--accent-color);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.merged-split-btn:active {
+  background: var(--accent-tint);
+  color: var(--accent-color);
+}
+
 /* 스와이프 삭제 & 타임라인 카드 (일체형 테두리) */
 .swipe-wrapper {
   position: relative;
@@ -1125,18 +1184,24 @@ input:checked + .slider:before {
 /* ==========================================================================
    토스트 (플로팅 헤어라인 알림)
    ========================================================================== */
+/* 라이트/다크 모두 검은 배경 + 흰 글씨로 통일. 라이트에선 검은 알림이 배경과 확실히 구분되고,
+   다크에선 테두리/그림자 없이 배경과 섞여서 사실상 흰 글씨만 보이게 함. */
 .toast {
   position: fixed;
   left: 50%;
   bottom: calc(82px + env(safe-area-inset-bottom));
   transform: translateX(-50%) translateY(14px);
-  background: var(--surface-elevated);
+  background: #000000;
   color: #FFFFFF;
-  border: 1px solid var(--border-color);
-  padding: 9px 18px;
+  border: none;
+  padding: 10px 18px;
   border-radius: var(--border-radius-pill);
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -1145,9 +1210,44 @@ input:checked + .slider:before {
   text-align: center;
 }
 
+[data-theme="light"] .toast {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
 .toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+.toast.has-action {
+  pointer-events: auto;
+}
+
+.toast-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.toast-icon svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2;
+}
+
+.toast-action {
+  margin-left: 4px;
+  padding: 4px 11px;
+  border: none;
+  border-radius: var(--border-radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.toast-action:active {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 /* ==========================================================================

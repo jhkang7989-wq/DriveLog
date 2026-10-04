@@ -5,6 +5,7 @@ let hasAutoExpandedHistory = false; // 최초 1회만 최근 날짜를 자동으
 
 function setHistoryViewMode(mode) {
   triggerHaptic();
+  summarySelection = null; // 보기 방식을 바꾸면 합치기 선택 모드는 해제
   historyViewMode = mode;
   document.getElementById('btn-view-detail').classList.toggle('active', mode === 'detail');
   document.getElementById('btn-view-summary').classList.toggle('active', mode === 'summary');
@@ -15,6 +16,7 @@ function setHistoryViewMode(mode) {
 
 function toggleDateGroup(date) {
   triggerHaptic();
+  summarySelection = null;
   if (expandedDates.has(date)) expandedDates.delete(date); else expandedDates.add(date);
   renderHistory();
 }
@@ -31,16 +33,26 @@ const SIDO_ABBR = {
   '제주특별자치도': '제주', '제주도': '제주'
 };
 
+// 실제 주소가 아닌 자리표시/오류 문자열인지 — "(확인중) 위도:37.6" 같은 임시 주소를 공백으로
+// 잘라 두 번째 조각("위도:37.6")을 지역명으로 오인해서 요약에 엉뚱한 슬롯이 생기던 문제가 있었음.
+function isUnknownAddr(addr) {
+  return !addr || addr.includes('API오류') || addr.includes('주소 정보 없음') || addr.includes('(확인중)');
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 // 주소 문자열에서 지역명(시/군/구)만 추출 — 요약보기 그룹 병합 판단 전용 (표시용 아님)
 function extractRegion(addr) {
-  if (!addr || addr.includes('API오류') || addr.includes('주소 정보 없음')) return null;
+  if (isUnknownAddr(addr)) return null;
   const parts = addr.trim().split(/\s+/);
   return parts.length >= 2 ? parts[1] : (parts[0] || null);
 }
 
 // 상세보기용 — 시/도만 축약하고 나머지(시/군/구~번지)는 전부 그대로 표기
 function formatFullAddress(addr) {
-  if (!addr || addr.includes('API오류') || addr.includes('주소 정보 없음')) return addr;
+  if (isUnknownAddr(addr)) return addr;
   const parts = addr.trim().split(/\s+/);
   if (parts.length > 0) parts[0] = SIDO_ABBR[parts[0]] || parts[0];
   return parts.join(' ');
@@ -48,7 +60,7 @@ function formatFullAddress(addr) {
 
 // 일지용 요약보기용 — 시/도(축약) + 시/군/구까지만 (세종은 시/군/구 단계가 없어 '세종'만 표기)
 function formatRegionAddress(addr) {
-  if (!addr || addr.includes('API오류') || addr.includes('주소 정보 없음')) return addr;
+  if (isUnknownAddr(addr)) return addr;
   const parts = addr.trim().split(/\s+/);
   const sido = SIDO_ABBR[parts[0]] || parts[0];
   if (sido === '세종') return '세종';
@@ -65,70 +77,296 @@ function buildRecordLegs(r) {
   const addrOf = (road, jibun) => (appState.settings.addressPref === 'road' ? (road || jibun) : (jibun || road)) || '(주소 정보 없음)';
   const startAddr = addrOf(r.startAddrRoad, r.startAddrJibun);
   const endAddr = addrOf(r.endAddrRoad, r.endAddrJibun);
-  const wholeTripLeg = [{ startAddr, destAddr: endAddr, destRegionKey: extractRegion(endAddr), distance: r.distance }];
 
-  if (!r.waypoints || r.waypoints.length === 0) return wholeTripLeg; // 경유지 없는 기록(과거 기록 포함)은 기존과 완전히 동일
+  // leg마다 붙는 메타(recordId/destWpIds/destIsEnd/mergedStops)는 "슬롯 합치기"가 어느 지점을
+  // 건너뛰어야 하는지 찾는 데만 쓰고, 거리·주소 계산 결과에는 영향이 없다.
+  const wholeTripLeg = () => [{
+    startAddr, destAddr: endAddr, destRegionKey: extractRegion(endAddr), distance: r.distance,
+    recordId: r.id, destWpIds: [], destIsEnd: true,
+    mergedStops: groupSkippedRuns((r.waypoints || []).filter(w => w.summarySkip)
+      .map(w => ({ id: w.id, region: extractRegion(addrOf(w.addrRoad, w.addrJibun)) })), r.id)
+  }];
+
+  if (!r.waypoints || r.waypoints.length === 0) return wholeTripLeg(); // 경유지 없는 기록(과거 기록 포함)은 기존과 완전히 동일
 
   const points = [{ addr: startAddr }];
-  r.waypoints.forEach(w => points.push({ addr: addrOf(w.addrRoad, w.addrJibun), rawLeg: w.legDistanceKm, isRestArea: !!w.restAreaName }));
-  points.push({ addr: endAddr, rawLeg: r.finalLegKm || 0 });
+  r.waypoints.forEach(w => points.push({ addr: addrOf(w.addrRoad, w.addrJibun), rawLeg: w.legDistanceKm, isRestArea: !!w.restAreaName, skip: !!w.summarySkip, wpId: w.id }));
+  points.push({ addr: endAddr, rawLeg: r.finalLegKm || 0, isEnd: true });
 
   // 같은 지역이 연속되면 노드 하나로 합침(구간 경계가 되는 지점만 노드로 남김).
-  // 휴게소로 자동 인식된 경유지(isRestArea)는 지역 경계로 취급하지 않음 — 출발지에서 잠깐 다른
-  // 지역의 휴게소를 들렀다 온 것만으로 일지용 요약에 불필요한 구간이 생기면 헷갈리기 때문.
+  // 휴게소로 자동 인식된 경유지(isRestArea)와, 사용자가 요약에서 "합치기"로 건너뛰라고 표시한
+  // 경유지(skip)는 지역 경계로 취급하지 않음 — 잠깐 들른 지역 때문에 일지용 요약에 불필요한
+  // 구간이 생기면 헷갈리기 때문.
   // 노드/last를 전혀 건드리지 않고 거리만 pendingCarry에 담아뒀다가 다음 "진짜" 지점에 그대로
   // 얹어서 넘김 — 그래야 이 거리가 유실되지 않고 항상 어딘가의 실제 구간에 정확히 반영됨.
   const nodes = [];
   let pendingCarry = 0;
+  let pendingSkipped = [];
   points.forEach(p => {
     if (p.isRestArea) {
       pendingCarry += (p.rawLeg || 0);
+      return;
+    }
+    if (p.skip) {
+      pendingCarry += (p.rawLeg || 0);
+      pendingSkipped.push({ id: p.wpId, region: extractRegion(p.addr) });
       return;
     }
     const region = extractRegion(p.addr);
     const last = nodes[nodes.length - 1];
     const legWithCarry = (p.rawLeg || 0) + pendingCarry;
     pendingCarry = 0;
+    let node;
     if (last && region && last._region === region) {
       last.rawLegSum += legWithCarry;
+      node = last;
     } else {
-      nodes.push({ addr: p.addr, _region: region, rawLegSum: legWithCarry });
+      node = { addr: p.addr, _region: region, rawLegSum: legWithCarry, wpIds: [], hasEnd: false, mergedStops: [] };
+      nodes.push(node);
+    }
+    if (p.wpId != null) node.wpIds.push(p.wpId);
+    if (p.isEnd) node.hasEnd = true;
+    if (pendingSkipped.length) {
+      node.mergedStops.push(...groupSkippedRuns(pendingSkipped, r.id));
+      pendingSkipped = [];
     }
   });
-  if (nodes.length <= 1) return wholeTripLeg; // 지역 추출 실패 등 예외 상황 — 통짜 구간으로 폴백
+  if (nodes.length <= 1) return wholeTripLeg(); // 지역 추출 실패 등 예외 상황 — 통짜 구간으로 폴백
 
   const rawTotal = nodes.reduce((sum, n, i) => (i === 0 ? sum : sum + n.rawLegSum), 0);
-  if (rawTotal <= 0) return wholeTripLeg; // 구간별 원본 거리를 못 구한 경우도 통짜 구간으로 폴백
+  if (rawTotal <= 0) return wholeTripLeg(); // 구간별 원본 거리를 못 구한 경우도 통짜 구간으로 폴백
   const scale = r.distance / rawTotal;
 
   const legs = [];
   for (let i = 1; i < nodes.length; i++) {
-    legs.push({ startAddr: nodes[i - 1].addr, destAddr: nodes[i].addr, destRegionKey: nodes[i]._region, distance: nodes[i].rawLegSum * scale });
+    const n = nodes[i];
+    legs.push({
+      startAddr: nodes[i - 1].addr, destAddr: n.addr, destRegionKey: n._region, distance: n.rawLegSum * scale,
+      recordId: r.id,
+      // 도착 지점이 기록의 끝(도착지)을 포함하면 그 경계는 경유지 표시가 아니라 "기록 사이 연결"로만 합칠 수 있음
+      destWpIds: n.hasEnd ? [] : n.wpIds, destIsEnd: n.hasEnd,
+      mergedStops: n.mergedStops
+    });
   }
   return legs;
+}
+
+// 건너뛰기로 표시된 연속 경유지를 같은 지역끼리 묶어서 "합쳐진 정차" 목록 항목으로 만든다
+function groupSkippedRuns(skipped, recordId) {
+  const runs = [];
+  skipped.forEach(s => {
+    const lastRun = runs[runs.length - 1];
+    if (lastRun && lastRun.region === s.region) lastRun.wpIds.push(s.id);
+    else runs.push({ kind: 'skip', recordId, region: s.region, wpIds: [s.id] });
+  });
+  return runs;
 }
 
 // 도착지 지역이 바뀔 때까지 연속된 구간을 하나로 합산 (일지용 요약 보기 전용)
 // records는 반드시 시간순(오름차순)으로 전달해야 함
 function buildSummaryGroups(records) {
   const groups = [];
+  let prevRecord = null;
   records.forEach(r => {
-    buildRecordLegs(r).forEach(leg => {
+    let legs = buildRecordLegs(r);
+
+    // 사용자가 "기록 사이"를 합쳐둔 경우(summaryJoinPrevId): 앞 기록의 마지막 구간과 이 기록의
+    // 첫 구간을 하나로 이음. 각 기록의 distance는 이미 그 기록 안에서 완결된 값이라 기록을
+    // 넘나드는 거리 이월은 필요 없고, 두 구간의 거리를 그냥 더하면 됨. 바로 앞 기록이 그 ID가
+    // 아니면(중간 기록이 삭제됐거나 순서가 바뀐 경우) 표시를 무시해서 엉뚱한 곳에 안 붙게 함.
+    const prevGroup = groups[groups.length - 1];
+    if (r.summaryJoinPrevId != null && prevRecord && prevRecord.id === r.summaryJoinPrevId && prevGroup && legs.length > 0) {
+      const first = legs[0];
+      prevGroup.mergedStops.push({ kind: 'join', recordId: r.id, region: prevGroup._destRegionKey });
+      prevGroup.distance += first.distance;
+      prevGroup.destAddrRaw = first.destAddr || prevGroup.destAddrRaw;
+      prevGroup._destRegionKey = first.destRegionKey;
+      prevGroup.lastLeg = first;
+      prevGroup.mergedStops.push(...first.mergedStops);
+      legs = legs.slice(1);
+    }
+
+    legs.forEach(leg => {
       const last = groups[groups.length - 1];
       if (last && leg.destRegionKey && last._destRegionKey === leg.destRegionKey) {
         last.distance += leg.distance;
         last.destAddrRaw = leg.destAddr || last.destAddrRaw; // 표시용 원본 주소는 최신 도착지로 갱신
+        last.lastLeg = leg;
+        last.mergedStops.push(...leg.mergedStops);
       } else {
         groups.push({
           startAddr: leg.startAddr,
           destAddrRaw: leg.destAddr,
           _destRegionKey: leg.destRegionKey,
-          distance: leg.distance
+          distance: leg.distance,
+          firstLeg: leg,
+          lastLeg: leg,
+          mergedStops: [...leg.mergedStops]
         });
       }
     });
+    prevRecord = r;
   });
   return groups;
+}
+
+/* 일지용 요약 "슬롯 합치기" — 요약 카드를 길게 눌러 선택 → 이어지는 옆 카드를 탭하면 합쳐짐.
+   원본 기록/상세보기/날짜 총거리는 건드리지 않고, 요약 계산(buildRecordLegs/buildSummaryGroups)에만
+   반영된다. 표시는 두 곳에 저장: 한 기록 안이면 경유지의 summarySkip, 기록 사이면 뒤 기록의
+   summaryJoinPrevId. 둘 다 appState 안이라 saveData()를 거치며 네이티브 백업/JSON 백업에 자동 포함. */
+let summaryGroupsByDate = {};
+let summarySelection = null; // { date, idx } — idx는 그 날짜 요약 그룹의 시간순 인덱스
+let summaryIgnoreTapUntil = 0;
+const SUMMARY_LONG_PRESS_MS = 500;
+
+function clearSummarySelection(rerender) {
+  summarySelection = null;
+  if (rerender) renderHistory();
+}
+
+// lo번째 그룹과 lo+1번째 그룹을 합칠 수 있는지 판단하고, 합칠 때 어떤 표시를 남길지 계획한다
+function planSummaryMerge(groups, lo) {
+  const a = groups[lo], b = groups[lo + 1];
+  if (!a || !b) return { ok: false, reason: 'none' };
+
+  // 앞 슬롯의 도착 지역과 뒤 슬롯의 출발 지역이 이어져야 함(주소 문자열은 기록마다 달라서 지역으로 비교)
+  const aDest = a._destRegionKey;
+  const bStart = extractRegion(b.startAddr);
+  if (aDest && bStart && aDest !== bStart) return { ok: false, reason: 'gap' };
+
+  const lastLeg = a.lastLeg, firstLeg = b.firstLeg;
+  let change;
+  if (lastLeg.recordId === firstLeg.recordId) {
+    if (!lastLeg.destWpIds.length) return { ok: false, reason: 'unmergeable' };
+    change = { kind: 'skip', recordId: lastLeg.recordId, wpIds: lastLeg.destWpIds.slice() };
+  } else {
+    change = { kind: 'join', recordId: firstLeg.recordId, prevId: lastLeg.recordId };
+  }
+  return { ok: true, change, startAddr: a.startAddr, destAddr: b.destAddrRaw, distance: a.distance + b.distance };
+}
+
+function applySummaryChange(change) {
+  const r = appState.records.find(x => x.id === change.recordId);
+  if (!r) return;
+  if (change.kind === 'skip') {
+    (r.waypoints || []).forEach(w => { if (change.wpIds.includes(w.id)) w.summarySkip = true; });
+  } else {
+    r.summaryJoinPrevId = change.prevId;
+  }
+}
+
+function revertSummaryChange(change) {
+  const r = appState.records.find(x => x.id === change.recordId);
+  if (!r) return;
+  if (change.kind === 'skip') {
+    (r.waypoints || []).forEach(w => { if (change.wpIds.includes(w.id)) delete w.summarySkip; });
+  } else {
+    delete r.summaryJoinPrevId;
+  }
+}
+
+function onSummaryLongPress(card) {
+  summaryIgnoreTapUntil = Date.now() + 700; // 길게 누른 손가락을 뗄 때 따라오는 click이 바로 "탭"으로 처리되지 않게
+  summarySelection = { date: card.dataset.date, idx: parseInt(card.dataset.idx, 10) };
+  renderHistory();
+}
+
+function onSummaryTap(card) {
+  if (Date.now() < summaryIgnoreTapUntil || !summarySelection) return;
+  const date = card.dataset.date;
+  const idx = parseInt(card.dataset.idx, 10);
+
+  if (date === summarySelection.date && idx === summarySelection.idx) { clearSummarySelection(true); return; }
+  if (date !== summarySelection.date || Math.abs(idx - summarySelection.idx) !== 1) {
+    showToast('이어지는 슬롯끼리만 합칠 수 있어요');
+    return;
+  }
+  confirmSummaryMerge(date, Math.min(idx, summarySelection.idx));
+}
+
+async function confirmSummaryMerge(date, lo) {
+  const plan = planSummaryMerge(summaryGroupsByDate[date] || [], lo);
+  if (!plan.ok) {
+    showToast(plan.reason === 'unmergeable' ? '이 지점은 합칠 수 없어요' : '이어지는 슬롯끼리만 합칠 수 있어요');
+    return;
+  }
+  const ok = await showConfirm(`${formatRegionAddress(plan.startAddr)} → ${formatRegionAddress(plan.destAddr)}\n${plan.distance.toFixed(1)} km 로 합칠까요?`);
+  if (!ok) return;
+
+  applySummaryChange(plan.change);
+  summarySelection = null;
+  saveData();
+  renderHistory();
+  showUndoToast('슬롯을 합쳤어요', () => {
+    revertSummaryChange(plan.change);
+    saveData();
+    renderHistory();
+  });
+}
+
+// 요약 카드 길게 누르기 — 세로 스크롤과 안 부딪히게 손가락이 10px 넘게 움직이면 취소
+function attachSummaryHandlers() {
+  document.querySelectorAll('.summary-card').forEach(card => {
+    let timer = null, startX = 0, startY = 0, fired = false;
+    const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+    const start = (x, y) => {
+      cancel();
+      fired = false;
+      startX = x; startY = y;
+      timer = setTimeout(() => { timer = null; fired = true; triggerHaptic(); onSummaryLongPress(card); }, SUMMARY_LONG_PRESS_MS);
+    };
+    const move = (x, y) => {
+      if (timer && (Math.abs(x - startX) > 10 || Math.abs(y - startY) > 10)) cancel();
+    };
+
+    card.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    card.addEventListener('touchmove', e => move(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    card.addEventListener('touchend', cancel);
+    card.addEventListener('touchcancel', cancel);
+
+    // 데스크톱 테스트용 마우스 지원
+    card.addEventListener('mousedown', e => start(e.clientX, e.clientY));
+    card.addEventListener('mousemove', e => move(e.clientX, e.clientY));
+    card.addEventListener('mouseup', cancel);
+    card.addEventListener('mouseleave', cancel);
+
+    card.addEventListener('click', () => {
+      if (fired) { fired = false; return; }
+      onSummaryTap(card);
+    });
+  });
+}
+
+// 합쳐진 정차 목록 — 여기서 정차별로 분리할 수 있음
+function openMergedModal(date, idx) {
+  const g = (summaryGroupsByDate[date] || [])[idx];
+  if (!g || !g.mergedStops.length) return;
+  triggerHaptic();
+  const list = document.getElementById('merged-modal-list');
+  list.innerHTML = g.mergedStops.map((s, i) => `<div class="waypoint-item">
+      <div class="waypoint-item-info">
+        <div class="waypoint-item-addr">${escapeHtml(s.region || '지역 미상')}</div>
+        <div class="waypoint-item-meta">${s.kind === 'skip' ? `경유 ${s.wpIds.length}곳` : '기록 사이 연결'}</div>
+      </div>
+      <button class="waypoint-item-delete merged-split-btn" aria-label="분리" onclick="splitMergedStop('${date}', ${idx}, ${i})"><i data-lucide="unlink"></i></button>
+    </div>`).join('');
+  lucide.createIcons();
+  document.getElementById('merged-modal').classList.add('active');
+}
+
+function closeMergedModal() {
+  document.getElementById('merged-modal').classList.remove('active');
+}
+
+function splitMergedStop(date, idx, i) {
+  const g = (summaryGroupsByDate[date] || [])[idx];
+  const stop = g && g.mergedStops[i];
+  if (!stop) return;
+  revertSummaryChange(stop);
+  closeMergedModal();
+  saveData();
+  renderHistory();
+  showToast('분리했어요');
 }
 
 function renderHistory() {
@@ -165,10 +403,25 @@ function renderHistory() {
     html += `<div class="date-group-body" style="display:${isExpanded ? 'block' : 'none'};">`;
 
     if (historyViewMode === 'summary') {
-      buildSummaryGroups(chronological).slice().reverse().forEach(g => {
-        html += `<div class="summary-card">
+      const groups = buildSummaryGroups(chronological);
+      summaryGroupsByDate[date] = groups;
+      const sel = (summarySelection && summarySelection.date === date) ? summarySelection.idx : null;
+      if (sel !== null) {
+        html += `<div class="summary-hint"><span>합칠 슬롯을 탭하세요</span><button onclick="clearSummarySelection(true)">취소</button></div>`;
+      }
+      // 화면은 최신순(역순)으로 그리지만 idx는 시간순 인덱스를 그대로 유지해서 합치기 대상 계산에 씀
+      groups.map((g, i) => ({ g, i })).reverse().forEach(({ g, i }) => {
+        let cls = 'summary-card';
+        if (sel !== null) {
+          if (i === sel) cls += ' selected';
+          else if (Math.abs(i - sel) === 1 && planSummaryMerge(groups, Math.min(i, sel)).ok) cls += ' candidate';
+        }
+        const mergedIcon = g.mergedStops.length
+          ? `<span class="summary-merged-icon" onclick="event.stopPropagation(); openMergedModal('${date}', ${i})"><i data-lucide="link"></i></span>`
+          : '';
+        html += `<div class="${cls}" data-date="${date}" data-idx="${i}">
           <div class="summary-route">${formatRegionAddress(g.startAddr)} → ${formatRegionAddress(g.destAddrRaw)}</div>
-          <span class="summary-distance">${g.distance.toFixed(1)} km</span>
+          <span class="summary-right">${mergedIcon}<span class="summary-distance">${g.distance.toFixed(1)} km</span></span>
         </div>`;
       });
     } else {
@@ -214,6 +467,7 @@ function renderHistory() {
   list.innerHTML = html;
   lucide.createIcons();
   attachSwipeHandlers();
+  attachSummaryHandlers();
 }
 
 /* 카드 스와이프(좌측으로 밀어 삭제) 처리 */
