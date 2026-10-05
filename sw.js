@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v63'; // 진단 로그 추가
+const CACHE_NAME = 'drive-log-v64'; // isRunning 변경 감시 로그
 const ASSETS = [
   './index.html',
   './style.css',

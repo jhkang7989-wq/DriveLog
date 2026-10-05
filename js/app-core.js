@@ -58,7 +58,43 @@ diagLog(`페이지 시작 웹v${WEB_BUILD} NFC액션=${window.__pendingAction ||
 window.addEventListener('error', e => diagLog(`JS오류: ${e.message} (${String(e.filename || '').split('/').pop()}:${e.lineno})`));
 window.addEventListener('unhandledrejection', e => diagLog(`JS비동기오류: ${e.reason && e.reason.message ? e.reason.message : e.reason}`));
 window.addEventListener('pagehide', () => diagLog('pagehide(페이지가 내려감)'));
-document.addEventListener('visibilitychange', () => diagLog(`화면 ${document.hidden ? '숨김' : '표시'}`));
+
+// 화면이 숨겨지거나 다시 보일 때 "웹이 아는 운행 상태"와 "폰 추적 상태"를 같이 남김 — 두 값이 언제부터
+// 어긋났는지 보려는 용도. (appState는 아래에서 선언되지만 이 콜백은 스크립트가 다 로드된 뒤에 실행됨)
+function diagStateBrief() {
+  const nativeActive = callNativeBridge('isTrackingActive');
+  return `운행중=${appState.isRunning} 폰추적=${nativeActive === undefined ? '-' : nativeActive}`;
+}
+document.addEventListener('visibilitychange', () => diagLog(`화면 ${document.hidden ? '숨김' : '표시'} (${diagStateBrief()})`));
+
+// 운행 상태(isRunning)가 바뀌는 순간을 "어느 코드가 바꿨는지(호출 경로)"와 함께 남기는 감시 장치.
+// 실사용 로그에서 출발 후 페이지 새로고침·도착 처리·재시작 같은 흔적이 전혀 없는데도 이 값이 조용히
+// false로 바뀌어 있던 경우가 확인돼서(코드상 이 값을 쓰는 곳은 출발/도착 처리뿐인데 로그엔 없음),
+// 값이 바뀌는 순간 자체를 붙잡으려고 넣음. 값 자체의 동작은 그대로(JSON 저장에도 평소처럼 포함됨).
+function stackBrief() {
+  try {
+    return String(new Error().stack).split('\n').slice(3, 7)
+      .map(s => s.trim().replace(/\(?https?:\/\/[^/]+\/(js\/)?/, '(').replace(/^at /, ''))
+      .join(' < ');
+  } catch (e) { return '?'; }
+}
+
+function watchRunningFlag(state) {
+  if (!state || typeof state !== 'object') return state;
+  const existing = Object.getOwnPropertyDescriptor(state, 'isRunning');
+  if (existing && existing.get) return state; // 이미 감시 중
+  let value = state.isRunning;
+  Object.defineProperty(state, 'isRunning', {
+    enumerable: true,
+    configurable: true,
+    get() { return value; },
+    set(next) {
+      if (next !== value) diagLog(`isRunning ${value}→${next} 변경 [${stackBrief()}]`);
+      value = next;
+    }
+  });
+  return state;
+}
 
 // 앱을 자정 넘어서까지 계속 켜놓고 있으면 "오늘 누적 거리"가 어제 날짜 기준으로 멈춰있는 문제가
 // 있었음 — updateMainUI()가 운행 시작/종료 등 데이터가 바뀌는 시점에만 호출되고, 시간이 그냥
@@ -104,12 +140,12 @@ if ('serviceWorker' in navigator) {
 // ★ 생성한 Cloudflare 프록시 주소 (반드시 https:// 로 시작해야 합니다)
 const PROXY_URL = "https://drivelog-proxy.jhkang7989.workers.dev";
 
-let appState = {
+let appState = watchRunningFlag({
   isRunning: false,
   currentTrip: null,
   records: [],
   settings: { darkMode: true, haptic: true, addressPref: 'jibun', offsetPercent: 3, waypointsEnabled: true }
-};
+});
 
 function showAlert(message) {
   return new Promise(resolve => {
@@ -173,7 +209,7 @@ function readSavedState() {
 function loadData() {
   const { state, recovered, info } = readSavedState();
   diagLog(`상태 읽기: ${info}`);
-  if (state) appState = state;
+  if (state) appState = watchRunningFlag(state);
   lastSavedRunning = appState.isRunning; // 방금 읽은 상태가 기준 — 이후 "바뀐 저장"만 기록하려고
   if (recovered) {
     // 웹 쪽 사본이 뒤처져 있었으므로 다시 맞춰둔다(다음 실행 때 또 비교할 필요 없게)
