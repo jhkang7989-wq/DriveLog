@@ -725,19 +725,27 @@ body:has(#btn-toggle-drive.is-running) .rec-indicator {
   background: var(--card-color);
 }
 
+/* 삭제 영역은 카드의 "자식"으로 카드 오른쪽 바깥(left:100%)에 붙어서 카드와 함께 움직임.
+   예전에는 래퍼 뒤에 따로 깔아둔 빨간 판(right:0, 폭 64px)이었는데, 카드는 will-change:transform으로
+   별도 합성 레이어에 그려지고 래퍼는 소수점 높이라, 기기에 따라 카드 맨 아래 1픽셀 줄로 빨간색이
+   삐져나왔음. 같은 레이어(카드) 안에 두면 높이가 항상 카드와 똑같아서 구조적으로 삐져나올 수 없고,
+   닫힌 상태에선 래퍼의 overflow:hidden이 오른쪽 바깥을 잘라서 안 보임.
+   폭을 96px로 넉넉히 잡은 건 고무줄 효과로 64px을 넘겨 당길 때 틈이 안 보이게 하려는 것
+   (아이콘은 오른쪽 32px 패딩 덕에 앞쪽 64px 구간의 가운데에 위치). */
 .swipe-delete-bg {
   position: absolute;
   top: 0;
-  right: 0;
   bottom: 0;
-  width: 64px;
+  left: 100%;
+  width: 96px;
+  box-sizing: border-box;
+  padding-right: 32px;
   background: var(--danger-color);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   cursor: pointer;
-  z-index: 1;
 }
 
 .timeline-card {

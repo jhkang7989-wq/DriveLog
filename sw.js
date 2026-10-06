@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v65'; // 옛 화면 방어
+const CACHE_NAME = 'drive-log-v66'; // 스와이프 삭제 영역 정리
 const ASSETS = [
   './index.html',
   './style.css',

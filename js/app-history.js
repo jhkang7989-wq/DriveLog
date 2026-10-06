@@ -438,8 +438,8 @@ function renderHistory() {
         const hasWaypoints = r.waypoints && r.waypoints.length > 0;
 
         html += `<div class="swipe-wrapper" data-id="${r.id}">
-          <div class="swipe-delete-bg" onclick="deleteRecord(${r.id})"><i data-lucide="trash-2" style="width:18px; height:18px;"></i></div>
           <div class="timeline-card ${hasWaypoints ? 'has-waypoints' : ''}" data-id="${r.id}">
+            <div class="swipe-delete-bg" onclick="event.stopPropagation(); deleteRecord(${r.id})"><i data-lucide="trash-2" style="width:18px; height:18px;"></i></div>
             <div class="card-row-top">
               <span class="card-time">${sTime} ~ ${eTime}</span>
               <span class="card-distance-group">
