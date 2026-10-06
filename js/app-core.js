@@ -40,6 +40,10 @@ const WEB_BUILD = (() => {
   try { return new URL(document.currentScript.src).searchParams.get('v') || '?'; } catch (e) { return '?'; }
 })();
 
+// 이 페이지(화면)를 구분하는 짧은 번호 — 로그 줄마다 붙여서, 화면이 두 개 겹쳐 떠 있었는지(2026-10-06
+// 실사용 로그에서 확인된 "옛 화면이 앞으로 나오는" 문제) 어느 화면이 한 말인지 알 수 있게 함
+const PAGE_ID = Math.random().toString(36).slice(2, 5);
+
 // 한국시간 "YYYY-MM-DD HH:mm:ss.SSS" — 네이티브 DiagLog와 같은 형식이라 문자열 정렬만으로 시간순이 됨
 function diagStamp(ms) {
   return new Date(ms + 9 * 3600 * 1000).toISOString().replace('T', ' ').slice(0, 23);
@@ -48,7 +52,7 @@ function diagStamp(ms) {
 function diagLog(message) {
   try {
     const arr = JSON.parse(localStorage.getItem(DIAG_KEY) || '[]');
-    arr.push(`${diagStamp(Date.now())} [W] ${message}`);
+    arr.push(`${diagStamp(Date.now())} [W] #${PAGE_ID} ${message}`);
     if (arr.length > DIAG_MAX) arr.splice(0, arr.length - DIAG_MAX);
     localStorage.setItem(DIAG_KEY, JSON.stringify(arr));
   } catch (e) { /* 진단 기록 실패는 무시 */ }
@@ -65,7 +69,12 @@ function diagStateBrief() {
   const nativeActive = callNativeBridge('isTrackingActive');
   return `운행중=${appState.isRunning} 폰추적=${nativeActive === undefined ? '-' : nativeActive}`;
 }
-document.addEventListener('visibilitychange', () => diagLog(`화면 ${document.hidden ? '숨김' : '표시'} (${diagStateBrief()})`));
+document.addEventListener('visibilitychange', () => {
+  diagLog(`화면 ${document.hidden ? '숨김' : '표시'} (${diagStateBrief()})`);
+  // 다시 보이는 순간, 이 화면이 옛 상태를 들고 있진 않은지 확인 (아래 "옛 화면 방어" 참고).
+  // 아래의 recoverNativeTrackingIfNeeded 리스너보다 먼저 등록돼 있어야 옛 상태로 추적을 되살리지 않음.
+  if (!document.hidden) reloadIfStale('화면 표시');
+});
 
 // 운행 상태(isRunning)가 바뀌는 순간을 "어느 코드가 바꿨는지(호출 경로)"와 함께 남기는 감시 장치.
 // 실사용 로그에서 출발 후 페이지 새로고침·도착 처리·재시작 같은 흔적이 전혀 없는데도 이 값이 조용히
@@ -206,11 +215,50 @@ function readSavedState() {
   return { state: nativeIsNewer ? nativeState : webState, recovered: nativeIsNewer, info: info + (nativeIsNewer ? ' → 폰 사용(더 최신)' : ' → 웹 사용') };
 }
 
+/* 옛 화면 방어 (2026-10-06)
+   실사용 로그에서, NFC가 새 화면(페이지)을 만들 때 예전 화면이 onDestroy 없이 백그라운드에 그대로
+   남아 있다가 나중에 앞으로 나오는 경우가 확인됨 — 두 화면은 메모리 상태(appState)를 따로 들고 있어서
+   옛 화면은 "출발 전"/"운행 중" 같은 낡은 상태를 보여주고, 거기서 도착을 누르거나 자가복구가 돌면
+   새 화면이 저장해둔 최신 상태를 덮어쓰거나 추적을 엉뚱하게 되살림("출발/도착이 풀렸다"의 정체).
+   localStorage는 모든 화면이 공유하므로, 거기 저장된 savedAt이 이 화면이 아는 것보다 새로우면
+   "내가 옛 화면"이라는 뜻 → 아무것도 쓰지 않고 페이지를 새로고침해서 최신 상태로 맞춘다. */
+const STALE_NOTICE_KEY = 'driveLog_staleNotice';
+let staleReloadPending = false;
+
+function storedStateIsNewer() {
+  try {
+    const raw = localStorage.getItem('driveRecords_v4');
+    if (!raw) return false;
+    return (JSON.parse(raw).savedAt || 0) > (appState.savedAt || 0);
+  } catch (e) { return false; }
+}
+
+// 옛 화면이면 새로고침을 걸고 true를 돌려줌(호출한 쪽은 하던 일을 멈춰야 함). notice가 있으면
+// 새로고침 뒤 첫 화면에서 토스트로 이유를 알려줌(사용자가 직접 한 동작이 버려질 때만 씀).
+function reloadIfStale(reason, notice) {
+  if (staleReloadPending) return true;
+  if (!storedStateIsNewer()) return false;
+  staleReloadPending = true;
+  // 새로고침이 어떤 이유로든 안 먹혀도 영원히 막히진 않게(그래도 옛 상태로 덮어쓰진 못함 — 다음 시도에서 또 막힘)
+  setTimeout(() => { staleReloadPending = false; }, 5000);
+  diagLog(`옛 화면 감지(${reason}): 다른 화면이 더 최근에 저장함 → 새로고침해서 최신 상태로 맞춤`);
+  try { if (notice) localStorage.setItem(STALE_NOTICE_KEY, notice); } catch (e) { /* 알림 실패는 무시 */ }
+  window.location.reload();
+  return true;
+}
+
 function loadData() {
   const { state, recovered, info } = readSavedState();
   diagLog(`상태 읽기: ${info}`);
   if (state) appState = watchRunningFlag(state);
   lastSavedRunning = appState.isRunning; // 방금 읽은 상태가 기준 — 이후 "바뀐 저장"만 기록하려고
+  try {
+    const notice = localStorage.getItem(STALE_NOTICE_KEY);
+    if (notice) {
+      localStorage.removeItem(STALE_NOTICE_KEY);
+      setTimeout(() => showToast(notice, 4000), 900);
+    }
+  } catch (e) { /* 무시 */ }
   if (recovered) {
     // 웹 쪽 사본이 뒤처져 있었으므로 다시 맞춰둔다(다음 실행 때 또 비교할 필요 없게)
     localStorage.setItem('driveRecords_v4', JSON.stringify(appState));
@@ -262,6 +310,9 @@ function loadData() {
 let lastSavedRunning = null;
 
 function saveData() {
+  // 마지막 안전망: 이 화면이 옛 상태인 채로 저장하면 최신 상태를 덮어쓰게 되므로 저장하지 않고 새로고침.
+  // (사용자 동작은 각 진입점에서 먼저 걸러지고, 여기까지 오는 건 드문 경우)
+  if (reloadIfStale('저장 직전', '다른 화면에 더 최근 내용이 저장돼 있어서 새로 불러왔어요. 방금 한 작업은 다시 해주세요.')) return false;
   appState.savedAt = Date.now(); // 웹 사본과 네이티브 사본 중 어느 쪽이 최신인지 판별하는 기준
   const json = JSON.stringify(appState);
 

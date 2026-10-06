@@ -19,6 +19,10 @@ function shouldSkipDuplicateToggle() {
 }
 
 async function toggleDrive(source = 'button') {
+  // 이 화면이 옛 상태(다른 화면이 이미 출발/도착을 처리한 뒤)라면 그 상태로 도착/출발을 또 처리하지 않고
+  // 최신으로 새로고침 — 2026-10-06 같은 운행이 두 화면에서 두 번 도착 처리된 사례 방지.
+  // NFC는 방금 새로 로드한 화면이라 대상이 아님(여기서 새로고침하면 태그 동작이 사라짐).
+  if (source !== 'nfc' && reloadIfStale('출발/도착 누름', '다른 화면에서 이미 상태가 바뀌어서 최신으로 새로 불러왔어요. 현재 상태를 확인하고 다시 눌러주세요.')) return;
   if (shouldSkipDuplicateToggle()) {
     diagLog(`토글 무시(10초 이내 중복) 출처=${source} 운행중=${appState.isRunning}`);
     return;
@@ -290,6 +294,7 @@ let nativeDrainInProgress = false;
 
 async function drainPendingNativeWaypoints() {
   if (nativeDrainInProgress) return;
+  if (reloadIfStale('경유 확인')) return; // 옛 화면이 대기 정차를 읽어 옛 운행에 붙이지 않게
   if (!appState.isRunning || !appState.currentTrip) return;
 
   const raw = callNativeBridge('getPendingWaypoints');
@@ -331,6 +336,8 @@ let nativeTrackingRecoveryAttempted = false;
 let loggedTrackingMismatch = false;
 function recoverNativeTrackingIfNeeded() {
   if (!window.AndroidBridge) return;
+  // 옛 화면의 낡은 "운행 중"을 믿고 이미 도착으로 끝난 추적을 되살리지 않게 (2026-10-06 19:39 사례)
+  if (reloadIfStale('추적 상태 확인')) return;
 
   if (!appState.isRunning) {
     // 반대 방향 불일치(폰은 추적 중인데 웹은 "운행 아님")는 이 앱이 알아채지 못하고 있었음 —

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-log-v64'; // isRunning 변경 감시 로그
+const CACHE_NAME = 'drive-log-v65'; // 옛 화면 방어
 const ASSETS = [
   './index.html',
   './style.css',
